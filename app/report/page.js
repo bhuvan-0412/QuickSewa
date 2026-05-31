@@ -12,11 +12,22 @@ const CATEGORY_EMOJI = {
 }
 const SEVERITY_COLOR = { Low: '#16a34a', Medium: '#d97706', High: '#dc2626' }
 
+// Functional Fix: Define toBase64 utility
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = (error) => reject(error)
+  })
+}
+
 export default function Report() {
   const { t, lang } = useLang()
   const router = useRouter()
   const fileRef = useRef()
 
+  // Form Core States
   const [photo, setPhoto] = useState(null)
   const [photoFile, setPhotoFile] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
@@ -31,7 +42,7 @@ export default function Report() {
   const [complaintId, setComplaintId] = useState('')
   const [fullComplaintId, setFullComplaintId] = useState('')
 
-  // Upgraded AI Issue Detection States
+  // Advanced AI Detection States
   const [confidence, setConfidence] = useState(0)
   const [department, setDepartment] = useState('')
   const [urgent, setUrgent] = useState(false)
@@ -39,50 +50,60 @@ export default function Report() {
   const [secondaryIssues, setSecondaryIssues] = useState([])
   const [showCategoryOverride, setShowCategoryOverride] = useState(false)
 
-  // Dual-mode Location Selector States
+  // Location Picker States
   const [locationMode, setLocationMode] = useState('gps') // 'gps' | 'map'
   const [location, setLocation] = useState(null)
   const [locationStatus, setLocationStatus] = useState('idle') // 'idle' | 'loading' | 'done' | 'error'
 
+  // UX Feedback States
+  const [dragActive, setDragActive] = useState(false)
+  const [toast, setToast] = useState(null)
 
-  // Inject Pulsing Scanning Animation in head
+  // Show Toast Helper
+  const triggerToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  // Inject Custom Keyframes dynamically
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (!document.getElementById('pulse-animation-style')) {
+    if (!document.getElementById('report-custom-styles')) {
       const style = document.createElement('style')
-      style.id = 'pulse-animation-style'
+      style.id = 'report-custom-styles'
       style.innerHTML = `
-        @keyframes scan-pulse {
-          0% {
-            border-color: #86efac;
-            box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4);
-          }
-          70% {
-            border-color: #16a34a;
-            box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);
-          }
-          100% {
-            border-color: #86efac;
-            box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
-          }
+        @keyframes scanner-slide {
+          0%, 100% { top: 0%; opacity: 0.3; }
+          50% { top: 96%; opacity: 1; }
         }
-        .ai-pulse-card {
-          animation: scan-pulse 2s infinite ease-in-out;
+        .scanner-bar {
+          position: absolute;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, transparent, #22c55e, transparent);
+          box-shadow: 0 0 10px #22c55e;
+          animation: scanner-slide 2.5s infinite ease-in-out;
+        }
+        .pulse-outline {
+          animation: border-glow 2s infinite ease-in-out;
+        }
+        @keyframes border-glow {
+          0%, 100% { border-color: rgba(22, 163, 74, 0.2); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.05); }
+          50% { border-color: rgba(22, 163, 74, 0.6); box-shadow: 0 0 15px rgba(22, 163, 74, 0.15); }
         }
       `
       document.head.appendChild(style)
     }
   }, [])
 
-  // Geolocation trigger
+  // Geolocation Handler
   function getLocation() {
     setLocationStatus('loading')
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocationStatus('error')
-      // Auto switch to Pick on Map after a short timeout so user sees failure
-      setTimeout(() => {
-        setLocationMode('map')
-      }, 1500)
+      triggerToast('GPS access is not supported by your browser', 'error')
+      setTimeout(() => setLocationMode('map'), 1500)
       return
     }
 
@@ -90,138 +111,67 @@ export default function Report() {
       (pos) => {
         setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
         setLocationStatus('done')
+        triggerToast(t.locationFound || 'GPS location found successfully!', 'success')
       },
       (err) => {
         console.warn("GPS Geolocation failed:", err)
         setLocationStatus('error')
-        // Automatically switch to Option B (Map) on GPS failure
-        setTimeout(() => {
-          setLocationMode('map')
-        }, 1500)
+        triggerToast('Could not access GPS. Switched to Hyderabad map picker.', 'error')
+        setTimeout(() => setLocationMode('map'), 1500)
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     )
   }
 
-  // Handle GPS selector click
+  // Dual mode click handlers
   const handleGPSSelect = () => {
     setLocationMode('gps')
     getLocation()
   }
 
-  // Handle Map selector click
   const handleMapSelect = () => {
     setLocationMode('map')
   }
 
-  // Lazy Load and Initialize Leaflet for Pick on Map
-  useEffect(() => {
-    if (locationMode !== 'map') return
-    let isMounted = true
-
-    // Inject Leaflet CSS
-    if (!document.getElementById('leaflet-picker-css')) {
-      const link = document.createElement('link')
-      link.id = 'leaflet-picker-css'
-      link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-      document.head.appendChild(link)
+  // Drag and Drop File Handlers
+  const handleDrag = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true)
+    } else if (e.type === "dragleave") {
+      setDragActive(false)
     }
+  }
 
-    // Inject Leaflet JS
-    if (!window.L) {
-      const script = document.createElement('script')
-      script.id = 'leaflet-picker-js'
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-      script.async = true
-      script.onload = () => {
-        if (isMounted) initReportMap()
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0]
+      if (!file.type.startsWith('image/')) {
+        triggerToast('Please upload an image file format.', 'error')
+        return
       }
-      document.head.appendChild(script)
-    } else {
-      initReportMap()
+      setPhotoFile(file)
+      setPhoto(URL.createObjectURL(file))
+      getLocation()
+      await classifyWithAI(file)
     }
+  }
 
-    function initReportMap() {
-      const L = window.L
-      if (!L) return
-
-      // Clean up previous report map if any
-      if (window._reportMap) {
-        window._reportMap.remove()
-        window._reportMap = null
-      }
-
-      const defaultLat = location?.lat || 17.3850
-      const defaultLng = location?.lng || 78.4867
-
-      const map = L.map('location-picker-map').setView([defaultLat, defaultLng], 12)
-      window._reportMap = map
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map)
-
-      // Draggable custom red pin L.divIcon to avoid Next.js asset resolution errors
-      const redPinIcon = L.divIcon({
-        className: '',
-        html: `<div style="
-          width: 32px; height: 32px; border-radius: 50%;
-          background: #dc2626; border: 3px solid white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-          display: flex; align-items: center; justify-content: center;
-          font-size: 16px; cursor: grab;
-        ">📍</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      })
-
-      // Placed initially at default position
-      const marker = L.marker([defaultLat, defaultLng], {
-        icon: redPinIcon,
-        draggable: true
-      }).addTo(map)
-
-      // Initialize location state if null
-      if (!location) {
-        setLocation({ lat: defaultLat, lng: defaultLng })
-        setLocationStatus('done')
-      }
-
-      // Map click handler to relocate marker and update state
-      map.on('click', (e) => {
-        const { lat, lng } = e.latlng
-        marker.setLatLng([lat, lng])
-        setLocation({ lat, lng })
-        setLocationStatus('done')
-      })
-
-      // Marker dragend handler to update state
-      marker.on('dragend', () => {
-        const { lat, lng } = marker.getLatLng()
-        setLocation({ lat, lng })
-        setLocationStatus('done')
-      })
-    }
-
-    return () => {
-      isMounted = false
-      if (window._reportMap) {
-        window._reportMap.remove()
-        window._reportMap = null
-      }
-    }
-  }, [locationMode])
-
+  // Standard File Select Handler
   async function handlePhoto(e) {
     const file = e.target.files[0]
     if (!file) return
     setPhotoFile(file)
     setPhoto(URL.createObjectURL(file))
-    getLocation() // Initial auto-detection via GPS (Option A)
+    getLocation()
     await classifyWithAI(file)
   }
 
+  // AI Classification with timeout & raw response safety
   async function classifyWithAI(file) {
     setAiLoading(true)
     setAiResult(null)
@@ -229,17 +179,17 @@ export default function Report() {
     setShowCategoryOverride(false)
 
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
-
     if (!apiKey || apiKey === 'your-gemini-api-key-here') {
       console.error('Gemini API key missing from .env.local')
       setAiResult({ error: true, reason: 'missing_key' })
       setAiUnavailable(true)
       setAiLoading(false)
+      triggerToast('AI assistance offline. Please fill manually.', 'error')
       return
     }
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const timeoutId = setTimeout(() => controller.abort(), 12000)
 
     try {
       const base64 = await toBase64(file)
@@ -279,32 +229,30 @@ export default function Report() {
       clearTimeout(timeoutId)
 
       if (!response.ok) {
-        const errData = await response.json()
-        throw new Error(errData.error?.message || `API error ${response.status}`)
+        throw new Error(`API error ${response.status}`)
       }
 
       const data = await response.json()
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-      
-      if (!text) throw new Error('Empty response from Gemini')
-      
+      if (!text) throw new Error('Empty response')
+
       const cleaned = text.replace(/```json|```/g, '').trim()
       const result = JSON.parse(cleaned)
 
-      if (!result.primary_category) throw new Error('Invalid response format')
+      if (!result.primary_category) throw new Error('Format match error')
 
       setAiResult(result)
       setCategory(result.primary_category)
       setSeverity(result.severity || 'Medium')
       setDescription(result.auto_description || '')
-      
-      // Save advanced fields
       setTitle(result.auto_title || '')
       setConfidence(result.confidence || 75)
       setSecondaryIssues(result.secondary_issues || [])
       setUrgent(result.urgent === true || result.urgent === 'true')
       setEstimatedRepair(result.estimated_repair || '₹2,000-₹10,000')
       setDepartment(result.department || 'GHMC General')
+
+      triggerToast(t.aiComplete || 'AI Scanner analyzed photo successfully!', 'success')
 
     } catch (err) {
       clearTimeout(timeoutId)
@@ -313,17 +261,114 @@ export default function Report() {
       setAiUnavailable(true)
       setCategory('Other')
       setSeverity('Medium')
+      triggerToast('AI analysis unavailable. Manual form enabled.', 'error')
     }
 
     setAiLoading(false)
   }
 
+  // Leaflet lazy loading for Hyderabad coordinates picker
+  useEffect(() => {
+    if (locationMode !== 'map') return
+    let isMounted = true
+
+    // Inject CSS
+    if (!document.getElementById('leaflet-picker-css')) {
+      const link = document.createElement('link')
+      link.id = 'leaflet-picker-css'
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(link)
+    }
+
+    // Inject JS
+    if (!window.L) {
+      const script = document.createElement('script')
+      script.id = 'leaflet-picker-js'
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+      script.async = true
+      script.onload = () => {
+        if (isMounted) initReportMap()
+      }
+      document.head.appendChild(script)
+    } else {
+      initReportMap()
+    }
+
+    function initReportMap() {
+      const L = window.L
+      if (!L) return
+
+      if (window._reportMap) {
+        window._reportMap.remove()
+        window._reportMap = null
+      }
+
+      const defaultLat = location?.lat || 17.3850
+      const defaultLng = location?.lng || 78.4867
+
+      const map = L.map('location-picker-map').setView([defaultLat, defaultLng], 12)
+      window._reportMap = map
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map)
+
+      const redPinIcon = L.divIcon({
+        className: '',
+        html: `<div style="
+          width: 36px; height: 36px; border-radius: 50%;
+          background: #dc2626; border: 3px solid white;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 18px; cursor: grab;
+        ">📍</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      })
+
+      const marker = L.marker([defaultLat, defaultLng], {
+        icon: redPinIcon,
+        draggable: true
+      }).addTo(map)
+
+      if (!location) {
+        setLocation({ lat: defaultLat, lng: defaultLng })
+        setLocationStatus('done')
+      }
+
+      map.on('click', (e) => {
+        const { lat, lng } = e.latlng
+        marker.setLatLng([lat, lng])
+        setLocation({ lat, lng })
+        setLocationStatus('done')
+      })
+
+      marker.on('dragend', () => {
+        const { lat, lng } = marker.getLatLng()
+        setLocation({ lat, lng })
+        setLocationStatus('done')
+      })
+    }
+
+    return () => {
+      isMounted = false
+      if (window._reportMap) {
+        window._reportMap.remove()
+        window._reportMap = null
+      }
+    }
+  }, [locationMode])
+
+  // Submit report to Supabase Storage and complaints database table
   async function handleSubmit() {
     if (!photo || !category || !location) return
     setSubmitting(true)
 
     try {
-      const fileName = `complaint_${Date.now()}.${photoFile.name.split('.').pop()}`
+      const extension = photoFile.name.split('.').pop() || 'jpg'
+      const fileName = `complaint_${Date.now()}.${extension}`
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('complaint-photos')
         .upload(fileName, photoFile)
@@ -335,10 +380,8 @@ export default function Report() {
         .getPublicUrl(fileName)
 
       const ward = getWard(location.lat, location.lng)
-
       let insertResult = null
 
-      // Attempt to save complete advanced details
       try {
         const { data, error } = await supabase
           .from('complaints')
@@ -363,8 +406,7 @@ export default function Report() {
         if (error) throw error
         insertResult = data
       } catch (advancedErr) {
-        console.warn("Advanced columns fail. Executing graceful fallback insert:", advancedErr)
-        // Graceful Schema Baseline fallback
+        console.warn("Advanced column insert blocked. Performing graceful fallback insert:", advancedErr)
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('complaints')
           .insert([{
@@ -388,7 +430,7 @@ export default function Report() {
       setComplaintId(shortId)
       setFullComplaintId(insertResult[0].id)
 
-      // Trigger Resend API call (officer notification email)
+      // Optional Resend email notify
       try {
         const resendApiKey = process.env.NEXT_PUBLIC_RESEND_API_KEY || process.env.RESEND_API_KEY
         if (resendApiKey) {
@@ -403,68 +445,20 @@ export default function Report() {
               from: 'complaints@quicksewa.in',
               to: 'officer@quicksewa.in',
               subject: `New ${category} complaint in ${ward} — Severity: ${severity}`,
-              html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                  <div style="background: #16a34a; padding: 24px; text-align: center; color: white;">
-                    <h1 style="margin: 0; fontSize: 24px; fontWeight: bold;">QuickSewa Hyderabad</h1>
-                    <p style="margin: 4px 0 0 0; fontSize: 14px; opacity: 0.9;">New Civic Grievance Filed</p>
-                  </div>
-                  <div style="padding: 24px; background: #ffffff;">
-                    <h2 style="color: #14532d; font-size: 18px; margin-top: 0;">Grievance Details</h2>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                      <tr>
-                        <td style="padding: 8px 0; font-weight: bold; width: 120px; color: #4b5563;">Complaint ID:</td>
-                        <td style="padding: 8px 0; color: #111827;">#${shortId}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">Title:</td>
-                        <td style="padding: 8px 0; color: #111827;">${title || 'Untitled'}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">Category:</td>
-                        <td style="padding: 8px 0; color: #111827;">${category}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">Ward:</td>
-                        <td style="padding: 8px 0; color: #111827;">${ward}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">Severity:</td>
-                        <td style="padding: 8px 0; color: #111827; font-weight: bold; color: ${severity === 'High' ? '#dc2626' : severity === 'Medium' ? '#d97706' : '#16a34a'};">${severity}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">Coordinates:</td>
-                        <td style="padding: 8px 0; color: #111827;">${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}</td>
-                      </tr>
-                    </table>
-                    <div style="border-top: 1px solid #f3f4f6; padding-top: 16px; margin-bottom: 24px;">
-                      <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #4b5563;">Description:</h3>
-                      <p style="margin: 0; line-height: 1.5; color: #1f2937; background: #f9fafb; padding: 12px; border-radius: 8px; font-style: italic;">
-                        "${description || 'No description provided.'}"
-                      </p>
-                    </div>
-                    <div style="text-align: center;">
-                      <a href="${reportUrl}" style="display: inline-block; background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                        View Complaint Report
-                      </a>
-                    </div>
-                  </div>
-                  <div style="background: #f9fafb; padding: 16px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb;">
-                    QuickSewa • GHMC Hyderabad Grievance Management
-                  </div>
-                </div>
-              `
+              html: `<p>New complaint details can be loaded at <a href="${reportUrl}">View Report</a>.</p>`
             })
           })
         }
-      } catch (emailErr) {
-        console.error("Failed to send Resend email:", emailErr)
+      } catch (e) {
+        console.warn("Resend email failed:", e)
       }
 
       setSubmitted(true)
+      triggerToast('Grievance logged successfully!', 'success')
 
     } catch (err) {
-      alert('Something went wrong. Please try again.')
+      console.error(err)
+      triggerToast('Form submission failed. Please check connection.', 'error')
     }
     setSubmitting(false)
   }
@@ -487,56 +481,57 @@ export default function Report() {
       if (locationStatus === 'loading') {
         return (
           <div style={{
-            fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 10,
-            background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a',
-            marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 6
+            fontSize: 13, fontWeight: 500, padding: '12px 16px', borderRadius: 12,
+            background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a',
+            marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 8
           }}>
-            ⏳ {t.locationLoading}
+            <span className="pulse-outline" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#b45309' }} />
+            {t.locationLoading}
           </div>
         )
       }
       if (locationStatus === 'done' && location) {
         return (
           <div style={{
-            fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 10,
+            fontSize: 13, fontWeight: 500, padding: '12px 16px', borderRadius: 12,
             background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0',
-            marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: 2
+            marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: 4
           }}>
-            <span style={{ fontWeight: 700 }}>📍 {t.locationFound}</span>
-            <span>Ward: <strong>{getWard(location.lat, location.lng)}</strong></span>
-            <span style={{ fontSize: 11, opacity: 0.8 }}>Coords: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span>
+            <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>📍 {t.locationFound}</span>
+            <span style={{ fontSize: 12 }}>Ward Area: <strong>{getWard(location.lat, location.lng)}</strong></span>
+            <span style={{ fontSize: 11, opacity: 0.75 }}>Coordinates: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span>
           </div>
         )
       }
       if (locationStatus === 'error') {
         return (
           <div style={{
-            fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 10,
+            fontSize: 13, fontWeight: 500, padding: '12px 16px', borderRadius: 12,
             background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca',
             marginBottom: '1rem'
           }}>
-            ❌ Could not get GPS. Please pick on map instead.
+            ❌ Could not get GPS. Please pick on Hyderabad map instead.
           </div>
         )
       }
-    } else { // 'map'
+    } else {
       if (location) {
         return (
           <div style={{
-            fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 10,
+            fontSize: 13, fontWeight: 500, padding: '12px 16px', borderRadius: 12,
             background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0',
-            marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: 2
+            marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: 4
           }}>
-            <span style={{ fontWeight: 700 }}>📍 {t.selectedLocation}</span>
-            <span>Ward: <strong>{getWard(location.lat, location.lng)}</strong></span>
-            <span style={{ fontSize: 11, opacity: 0.8 }}>Coords: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span>
+            <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>📍 {t.selectedLocation}</span>
+            <span style={{ fontSize: 12 }}>Ward Area: <strong>{getWard(location.lat, location.lng)}</strong></span>
+            <span style={{ fontSize: 11, opacity: 0.75 }}>Coordinates: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span>
           </div>
         )
       } else {
         return (
           <div style={{
-            fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 10,
-            background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a',
+            fontSize: 13, fontWeight: 500, padding: '12px 16px', borderRadius: 12,
+            background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a',
             marginBottom: '1rem'
           }}>
             {t.tapMapPin}
@@ -547,66 +542,107 @@ export default function Report() {
     return null
   }
 
-
+  // REDESIGNED Success page view
   if (submitted) {
     return (
       <main style={{
         minHeight: '100vh', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
-        padding: '2rem', background: '#f0fdf4'
+        padding: '2rem 1rem', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
       }}>
-        <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div style={{ fontSize: 64, marginBottom: '1rem' }}>✅</div>
-          <h2 style={{ fontSize: 26, fontWeight: 800, color: '#14532d', marginBottom: 8 }}>
-            {t.complaintFiled}
-          </h2>
+        {/* Animated toast inside screen */}
+        {toast && (
           <div style={{
-            background: 'white', borderRadius: 16, padding: '1rem',
-            border: '1px solid #bbf7d0', marginBottom: '1.5rem'
+            position: 'fixed', bottom: 24, right: 24,
+            background: toast.type === 'success' ? 'var(--primary)' : '#dc2626',
+            color: 'white', padding: '12px 24px', borderRadius: 12,
+            boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 9999
           }}>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>{t.yourComplaintId}</p>
-            <p style={{ fontSize: 28, fontWeight: 800, color: '#15803d', letterSpacing: 2 }}>
+            <span>{toast.type === 'success' ? '✅' : '⚠️'}</span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{toast.message}</span>
+          </div>
+        )}
+
+        <div className="animated-card" style={{
+          textAlign: 'center', maxWidth: 440, width: '100%',
+          background: 'white', borderRadius: 24, padding: '2.5rem 2rem',
+          boxShadow: 'var(--shadow-md)', border: '1px solid var(--primary-border)'
+        }}>
+          {/* Circular drawing checkmark icon */}
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: '#f0fdf4',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 1.5rem',
+            border: '2px solid #bbf7d0',
+            boxShadow: '0 8px 24px rgba(22, 163, 74, 0.15)',
+            animation: 'scaleIn 0.5s ease-out'
+          }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" style={{
+                strokeDasharray: 50,
+                strokeDashoffset: 50,
+                animation: 'drawCheck 0.6s ease-in-out forwards 0.2s'
+              }} />
+            </svg>
+          </div>
+
+          <h2 style={{ fontSize: 28, fontWeight: 800, color: '#14532d', marginBottom: 8, letterSpacing: '-0.5px' }}>
+            {t.successTitle}
+          </h2>
+          
+          <div style={{
+            background: '#f8fafc', borderRadius: 16, padding: '1.25rem',
+            border: '1px solid #e2e8f0', marginBottom: '2rem',
+            textAlign: 'center', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+          }}>
+            <p style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 6 }}>{t.successId}</p>
+            <p style={{ fontSize: 32, fontWeight: 800, color: '#15803d', letterSpacing: '2px', fontFamily: 'monospace', margin: 0 }}>
               #{complaintId}
             </p>
           </div>
+
           <p style={{ fontSize: 14, color: '#4b5563', marginBottom: '2rem', lineHeight: 1.6 }}>
-            {t.complaintSentText}
+            {t.successMsg}
           </p>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <button
               onClick={() => router.push(`/report/${fullComplaintId}`)}
               style={{
-                background: '#16a34a', color: 'white',
-                padding: '0.9rem', borderRadius: 12,
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', color: 'white',
+                padding: '0.9rem', borderRadius: 14,
                 fontSize: 15, fontWeight: 700,
-                minHeight: '48px', cursor: 'pointer',
-                border: 'none',
+                minHeight: '52px', cursor: 'pointer',
+                border: 'none', boxShadow: '0 4px 14px rgba(22, 163, 74, 0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
               {t.viewReport}
             </button>
+            
             <button
               onClick={() => router.push('/map')}
               style={{
                 background: 'white', color: '#16a34a',
-                padding: '0.9rem', borderRadius: 12,
-                fontSize: 15, fontWeight: 600,
+                padding: '0.9rem', borderRadius: 14,
+                fontSize: 15, fontWeight: 700,
                 border: '2px solid #16a34a',
-                minHeight: '48px', cursor: 'pointer',
+                minHeight: '52px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-              {t.viewOnMap}
+              {t.viewMap}
             </button>
+
             <button
               onClick={() => router.push('/')}
               style={{
-                background: 'white', color: '#6b7280',
-                padding: '0.9rem', borderRadius: 12,
-                fontSize: 15, border: '1px solid #e5e7eb',
+                background: 'transparent', color: '#6b7280',
+                padding: '0.9rem', borderRadius: 14,
+                fontSize: 14, border: '1px solid #d1d5db',
                 minHeight: '48px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-              {t.backToHome}
+              {t.backHome}
             </button>
           </div>
         </div>
@@ -617,475 +653,528 @@ export default function Report() {
   return (
     <main style={{
       minHeight: '100vh',
-      background: '#f8fafc',
-      padding: '1.5rem',
-      paddingBottom: '4rem',
+      background: 'linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%)',
+      padding: '2rem 1rem',
+      paddingBottom: '5rem',
       position: 'relative'
     }}>
       
+      {/* Toast Alert Feedback Banner */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24,
+          background: toast.type === 'success' ? 'var(--primary)' : '#dc2626',
+          color: 'white', padding: '12px 24px', borderRadius: 12,
+          boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: 8,
+          zIndex: 9999, animation: 'slideInRight 0.3s ease-out'
+        }}>
+          <span>{toast.type === 'success' ? '✅' : '⚠️'}</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{toast.message}</span>
+        </div>
+      )}
+
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* Header Bar and Language Selector Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
               onClick={() => router.push('/')}
               style={{
-                background: 'white', borderRadius: 10,
-                padding: '0.5rem 0.75rem', fontSize: 20,
-                border: '1px solid #e5e7eb',
-                minHeight: '48px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                background: 'white', borderRadius: 12,
+                width: 44, height: 44, fontSize: 18,
+                border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>←</button>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#14532d', margin: 0 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#14532d', margin: 0, letterSpacing: '-0.5px' }}>
               {t.reportTitle}
             </h1>
           </div>
           <LangToggle />
         </div>
 
+        {/* CARD CONTENT */}
+        <div className="animated-card" style={{
+          background: 'white', borderRadius: 24, padding: '2rem 1.5rem',
+          boxShadow: 'var(--shadow-md)', border: '1px solid rgba(22, 163, 74, 0.1)'
+        }}>
 
-        {/* Photo Selection Area */}
-        <div
-          onClick={() => !photo && fileRef.current.click()}
-          style={{
-            background: photo ? 'transparent' : 'white',
-            border: photo ? 'none' : '2px dashed #86efac',
-            borderRadius: 20,
-            height: photo ? 'auto' : 220,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: photo ? 'default' : 'pointer',
-            marginBottom: '1.25rem',
-            overflow: 'hidden',
-            position: 'relative'
-          }}>
-          {photo ? (
-            <>
-              <img src={photo} alt="complaint" style={{
-                width: '100%', borderRadius: 20,
-                maxHeight: 300, objectFit: 'cover'
-              }} />
-              <button
-                onClick={() => fileRef.current.click()}
-                style={{
-                  position: 'absolute', bottom: 12, right: 12,
-                  background: 'rgba(0,0,0,0.6)', color: 'white',
-                  padding: '0.4rem 0.9rem', borderRadius: 8,
-                  fontSize: 13, minHeight: '40px', cursor: 'pointer', border: 'none'
-                }}>
-                {t.changePhoto}
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
-              <p style={{ fontWeight: 600, color: '#15803d', fontSize: 16 }}>
-                {t.tapToTake}
-              </p>
-              <p style={{ fontSize: 13, color: '#9ca3af', marginTop: 4 }}>
-                {t.orChoose}
-              </p>
-            </>
-          )}
-        </div>
-
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handlePhoto}
-          style={{ display: 'none' }}
-        />
-
-        {/* PROPER TWO-OPTION LOCATION SELECTOR */}
-        {photo && (
-          <div style={{ marginBottom: '1.25rem' }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {t.selectLocationMode}
-            </p>
-            
-            {/* Cards side by side */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: '1rem' }}>
-              {/* Option A Card */}
-              <div
-                onClick={handleGPSSelect}
-                style={{
-                  background: locationMode === 'gps' ? '#f0fdf4' : 'white',
-                  border: locationMode === 'gps' ? '2px solid #16a34a' : '1.5px solid #e5e7eb',
-                  borderRadius: 14,
-                  padding: '1rem',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  transition: 'all 0.2s ease',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <span style={{ fontSize: 28, display: 'block', marginBottom: 6 }}>📍</span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#14532d', display: 'block' }}>
-                  {t.useMyLocation}
-                </span>
-                <span style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginTop: 2 }}>
-                  {t.gpsSub}
-                </span>
-              </div>
-
-              {/* Option B Card */}
-              <div
-                onClick={handleMapSelect}
-                style={{
-                  background: locationMode === 'map' ? '#f0fdf4' : 'white',
-                  border: locationMode === 'map' ? '2px solid #16a34a' : '1.5px solid #e5e7eb',
-                  borderRadius: 14,
-                  padding: '1rem',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  transition: 'all 0.2s ease',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <span style={{ fontSize: 28, display: 'block', marginBottom: 6 }}>🗺️</span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#14532d', display: 'block' }}>
-                  {t.pickOnMap}
-                </span>
-                <span style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginTop: 2 }}>
-                  {t.mapSub}
-                </span>
-              </div>
-            </div>
-
-            {/* Location Status Display panel */}
-            {renderLocationStatus()}
-
-            {/* Option B Embedded Leaflet Map */}
-            {locationMode === 'map' && (
-              <div style={{ marginBottom: '1rem' }}>
-                <div 
-                  id="location-picker-map" 
-                  style={{ 
-                    width: '100%', 
-                    height: '280px', 
-                    borderRadius: '16px', 
-                    overflow: 'hidden',
-                    border: '1px solid #d1d5db',
-                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                    zIndex: 10
-                  }} 
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STEP 1: Pulsing Green "AI Scanning" Card */}
-        {aiLoading && (
-          <div className="ai-pulse-card" style={{
-            background: '#f0fdf4', borderRadius: 16,
-            padding: '1.25rem 1.5rem', marginBottom: '1rem',
-            border: '2px solid #86efac',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            textAlign: 'center', gap: 12
-          }}>
-            <span style={{ fontSize: 36, display: 'block', transform: 'scale(1.2)' }}>🤖</span>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#14532d', margin: 0 }}>
-              {t.aiAnalysing}
-            </p>
-            <div style={{
-              width: '100%', height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden', position: 'relative'
+          {/* Photo Selection Area: DRAG AND DROP CARD */}
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => !photo && fileRef.current.click()}
+            style={{
+              background: photo ? 'transparent' : (dragActive ? '#f0fdf4' : '#fafafa'),
+              border: photo ? 'none' : (dragActive ? '2px dashed #16a34a' : '2px dashed #cbd5e1'),
+              borderRadius: 20,
+              minHeight: photo ? 'auto' : 220,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: photo ? 'default' : 'pointer',
+              marginBottom: '2rem',
+              overflow: 'hidden',
+              position: 'relative',
+              transition: 'var(--transition)',
+              boxShadow: dragActive ? '0 0 15px rgba(22, 163, 74, 0.1)' : 'none'
             }}>
-              <div style={{
-                position: 'absolute', width: '50%', height: '100%', background: '#16a34a', borderRadius: 2,
-                animation: 'loading-slide 1.5s infinite ease-in-out'
-              }} />
-              <style dangerouslySetInnerHTML={{__html: `
-                @keyframes loading-slide {
-                  0% { left: -50%; }
-                  100% { left: 100%; }
-                }
-              `}} />
-            </div>
-          </div>
-        )}
+            {photo ? (
+              <div style={{ position: 'relative', width: '100%', borderRadius: 20, overflow: 'hidden' }}>
+                <img src={photo} alt="complaint proof" style={{
+                  width: '100%', borderRadius: 20,
+                  maxHeight: 280, objectFit: 'cover', display: 'block'
+                }} />
+                
+                {/* Image Overlay scan bar during loading */}
+                {aiLoading && <div className="scanner-bar" />}
 
-        {/* AI ERROR FALLBACK OR MANUALLY SELECTED SCENARIO */}
-        {aiResult && aiResult.error && !aiLoading && photo && (
-          <div style={{
-            background: '#fffbeb', borderRadius: 16,
-            padding: '1.25rem', marginBottom: '1.25rem',
-            border: '1px solid #fde68a',
-            display: 'flex', flexDirection: 'column', gap: 12
-          }}>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#d97706', margin: 0 }}>
-                {t.aiUnavailable}
-              </p>
-              <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4, margin: 0 }}>
-                {lang === 'te' ? 'కారణం: ' : 'Reason: '} {aiResult.reason || 'Unknown error'}
-              </p>
-            </div>
-            
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-                {t.manualChange}
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {CATEGORIES.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setCategory(cat)}
-                    style={{
-                      padding: '0.5rem 1rem', borderRadius: 99, fontSize: 13, fontWeight: 600,
-                      border: category === cat ? '2px solid #16a34a' : '1px solid #e5e7eb',
-                      background: category === cat ? '#f0fdf4' : 'white',
-                      color: category === cat ? '#15803d' : '#6b7280',
-                      cursor: 'pointer', minHeight: '40px'
-                    }}>
-                    {CATEGORY_EMOJI[cat] || ''} {t.categories[cat] || cat}
-                  </button>
-                ))}
+                <button
+                  onClick={() => fileRef.current.click()}
+                  style={{
+                    position: 'absolute', bottom: 12, right: 12,
+                    background: 'rgba(0,0,0,0.7)', color: 'white',
+                    padding: '8px 16px', borderRadius: 10,
+                    fontSize: 13, fontWeight: 600, minHeight: '40px', cursor: 'pointer', border: 'none',
+                    backdropFilter: 'blur(4px)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                  }}>
+                  {t.changePhoto}
+                </button>
               </div>
-            </div>
-
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-                {t.optionalTitle}
-              </p>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                maxLength={60}
-                placeholder={t.optionalTitlePlaceholder}
-                style={{
-                  width: '100%', padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: 12,
-                  fontSize: 14, color: '#374151', background: 'white', minHeight: '48px', boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-                {t.optionalDescription}
-              </p>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                maxLength={140}
-                rows={3}
-                placeholder={t.optionalDescPlaceholder}
-                style={{
-                  width: '100%', padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: 12,
-                  fontSize: 14, color: '#374151', background: 'white', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box'
-                }}
-              />
-              <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'right', marginTop: 4, margin: 0 }}>
-                {description.length}/140
-              </p>
-            </div>
-
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || !category || !location}
-              style={{
-                background: submitting || !category || !location ? '#86efac' : '#16a34a',
-                color: 'white', padding: '1rem', borderRadius: 14, fontSize: 17, fontWeight: 700,
-                width: '100%', minHeight: '48px', cursor: submitting || !category || !location ? 'not-allowed' : 'pointer', border: 'none'
-              }}>
-              {submitting ? t.submittingButton : t.submitButton}
-            </button>
-            {!location && (
-              <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, textAlign: 'center', marginTop: 6, margin: '6px 0 0 0' }}>
-                {t.pleaseSelectLocation}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* STEP 3: Upgraded Rich "AI Analysis Complete" Card */}
-        {photo && !aiLoading && !aiUnavailable && (
-          <div style={{
-            background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 16,
-            padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 14,
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
-          }}>
-            
-            {/* Analysis Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#14532d', margin: 0 }}>
-                {t.aiComplete}
-              </h2>
-            </div>
-
-            {/* Primary Category Display */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', padding: '10px 14px', borderRadius: 12, border: '1px solid #d1fae5' }}>
-              <span style={{ fontSize: 24 }}>{CATEGORY_EMOJI[category] || '📌'}</span>
-              <div>
-                <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>{t.detectedIssue}</p>
-                <p style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0 }}>{t.categories[category] || category || t.categories.Other}</p>
-              </div>
-            </div>
-
-            {/* Confidence progress bar */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
-                <span>{t.confidenceLabel}</span>
-                <span style={{ color: confidence >= 80 ? '#16a34a' : confidence >= 60 ? '#d97706' : '#dc2626' }}>
-                  {confidence}% {t.aiConfident}
+            ) : (
+              <div style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
+                <div style={{ fontSize: 44, marginBottom: 12, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.05))' }}>📤</div>
+                <p style={{ fontWeight: 700, color: '#15803d', fontSize: 16, marginBottom: 4 }}>
+                  {t.tapPhoto}
+                </p>
+                <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 14 }}>
+                  {t.orGallery}
+                </p>
+                <span style={{ fontSize: 11, background: '#e2e8f0', color: '#475569', padding: '4px 10px', borderRadius: 6, fontWeight: 600 }}>
+                  PNG, JPG, JPEG up to 10MB
                 </span>
               </div>
-              <div style={{ width: '100%', height: 10, background: '#e5e7eb', borderRadius: 99, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${confidence}%`,
-                  background: confidence >= 80 ? '#16a34a' : confidence >= 60 ? '#d97706' : '#dc2626',
-                  borderRadius: 99,
-                  transition: 'width 0.8s ease'
-                }} />
-              </div>
-            </div>
-
-            {/* Low confidence warning if confidence < 50 */}
-            {confidence > 0 && confidence < 50 && (
-              <div style={{
-                background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309',
-                padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700
-              }}>
-                {t.lowConfidence}
-              </div>
             )}
+          </div>
 
-            {/* RED Urgent Banner */}
-            {urgent && (
-              <div style={{
-                background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626',
-                borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 700,
-                display: 'flex', alignItems: 'center', gap: 6
-              }}>
-                <span>{t.urgentText}</span>
-              </div>
-            )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhoto}
+            style={{ display: 'none' }}
+          />
 
-            {/* Title override */}
-            <div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>{t.titleLabel}</p>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                maxLength={60}
-                placeholder={t.titleLabel}
-                style={{
-                  width: '100%', padding: '0.75rem 1rem', border: '1px solid #bbf7d0', borderRadius: 12,
-                  fontSize: 14, color: '#374151', background: 'white', minHeight: '48px', boxSizing: 'border-box'
-                }}
-              />
-            </div>
+          {/* TWO-OPTION LOCATION SELECTOR */}
+          {photo && (
+            <div style={{ marginBottom: '2rem' }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#4b5563', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {t.selectLocationMode || 'Location Selector'}
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.25rem' }}>
+                {/* Option A Card */}
+                <div
+                  onClick={handleGPSSelect}
+                  style={{
+                    background: locationMode === 'gps' ? '#f0fdf4' : 'white',
+                    border: locationMode === 'gps' ? '2px solid #16a34a' : '1.5px solid #e2e8f0',
+                    borderRadius: 16,
+                    padding: '1.25rem 1rem',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    boxShadow: locationMode === 'gps' ? '0 4px 15px rgba(22,163,74,0.1)' : 'var(--shadow-sm)',
+                    transition: 'var(--transition)'
+                  }}
+                >
+                  <span style={{ fontSize: 32, display: 'block', marginBottom: 6 }}>📍</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#14532d', display: 'block' }}>
+                    {t.useMyLocation}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#9ca3af', display: 'block', marginTop: 4 }}>
+                    {t.useMyLocationSub}
+                  </span>
+                </div>
 
-            {/* Description override */}
-            <div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>{t.descLabel}</p>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                maxLength={200}
-                rows={3}
-                placeholder={t.descLabel}
-                style={{
-                  width: '100%', padding: '0.75rem 1rem', border: '1px solid #bbf7d0', borderRadius: 12,
-                  fontSize: 14, color: '#374151', background: 'white', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            {/* Secondary Issues */}
-            {secondaryIssues && secondaryIssues.length > 0 && (
-              <div>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Also visible:</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {secondaryIssues.map(issue => (
-                    <span key={issue} style={{ background: '#e5e7eb', color: '#4b5563', padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600 }}>
-                      {issue}
-                    </span>
-                  ))}
+                {/* Option B Card */}
+                <div
+                  onClick={handleMapSelect}
+                  style={{
+                    background: locationMode === 'map' ? '#f0fdf4' : 'white',
+                    border: locationMode === 'map' ? '2px solid #16a34a' : '1.5px solid #e2e8f0',
+                    borderRadius: 16,
+                    padding: '1.25rem 1rem',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    boxShadow: locationMode === 'map' ? '0 4px 15px rgba(22,163,74,0.1)' : 'var(--shadow-sm)',
+                    transition: 'var(--transition)'
+                  }}
+                >
+                  <span style={{ fontSize: 32, display: 'block', marginBottom: 6 }}>🗺️</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#14532d', display: 'block' }}>
+                    {t.pickOnMap}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#9ca3af', display: 'block', marginTop: 4 }}>
+                    {t.pickOnMapSub}
+                  </span>
                 </div>
               </div>
-            )}
 
-            {/* Department and estimated repair tags */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, color: '#166534', background: 'white', padding: '10px 14px', borderRadius: 12, border: '1px solid #d1fae5' }}>
-              {estimatedRepair && (
-                <div>🛠️ {t.aiEstimate}: <strong style={{ color: '#15803d' }}>{estimatedRepair}</strong></div>
-              )}
-              {department && (
-                <div>🏢 {t.aiDepartment}: <strong style={{ color: '#15803d' }}>→ {department}</strong></div>
+              {/* Location Status logs panel */}
+              {renderLocationStatus()}
+
+              {/* Option B Leaflet Hyderabad map container */}
+              {locationMode === 'map' && (
+                <div style={{ marginBottom: '1.25rem', animation: 'scaleIn 0.3s ease-out' }}>
+                  <div 
+                    id="location-picker-map" 
+                    style={{ 
+                      width: '100%', 
+                      height: '240px', 
+                      borderRadius: '16px', 
+                      overflow: 'hidden',
+                      border: '1px solid #d1d5db',
+                      boxShadow: 'var(--shadow-sm)',
+                      zIndex: 10
+                    }} 
+                  />
+                </div>
               )}
             </div>
+          )}
 
-            {/* Confirm & Override buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || !location}
-                style={{
-                  background: submitting || !location ? '#86efac' : '#16a34a',
-                  color: 'white', padding: '0.9rem', borderRadius: 12,
-                  fontSize: 16, fontWeight: 700, border: 'none',
-                  minHeight: '48px', cursor: submitting || !location ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                {submitting ? t.submittingButton : t.confirmSubmitButton}
-              </button>
-              {!location && (
-                <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, textAlign: 'center', margin: '0 0 6px 0' }}>
-                  {t.pleaseSelectLocation}
-                </p>
-              )}
-
-              <button
-                onClick={() => setShowCategoryOverride(!showCategoryOverride)}
-                style={{
-                  background: 'white', color: '#6b7280', padding: '0.9rem', borderRadius: 12,
-                  fontSize: 14, fontWeight: 600, border: '1px solid #d1d5db',
-                  minHeight: '48px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                ✏️ {showCategoryOverride ? t.hideOverrideButton : t.editOverrideButton}
-              </button>
-            </div>
-
-            {/* STEP 4: Category Selector Override Pills */}
-            {showCategoryOverride && (
+          {/* STEP 1: Pulsing Green Scanning Loading Card */}
+          {aiLoading && (
+            <div className="ai-pulse-card" style={{
+              background: '#f0fdf4', borderRadius: 16,
+              padding: '1.5rem', marginBottom: '2rem',
+              border: '2px solid #86efac',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              textAlign: 'center', gap: 12, boxShadow: '0 4px 15px rgba(22, 163, 74, 0.1)'
+            }}>
+              <span style={{ fontSize: 38, animation: 'scaleIn 1s infinite alternate' }}>🤖</span>
+              <p style={{ fontSize: 15, fontWeight: 700, color: '#14532d', margin: 0 }}>
+                {t.aiScanning}
+              </p>
               <div style={{
-                marginTop: 8, paddingTop: 14, borderTop: '1px dashed #bbf7d0'
+                width: '100%', height: 6, background: '#cbd5e1', borderRadius: 99, overflow: 'hidden', position: 'relative'
               }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: '#14532d', marginBottom: 8, margin: '0 0 8px 0' }}>
+                <div style={{
+                  position: 'absolute', width: '50%', height: '100%', background: '#16a34a', borderRadius: 99,
+                  animation: 'loading-slide 1.5s infinite ease-in-out'
+                }} />
+                <style dangerouslySetInnerHTML={{__html: `
+                  @keyframes loading-slide {
+                    0% { left: -50%; }
+                    100% { left: 100%; }
+                  }
+                `}} />
+              </div>
+            </div>
+          )}
+
+          {/* AI FAILURE CARD */}
+          {aiResult && aiResult.error && !aiLoading && photo && (
+            <div style={{
+              background: '#fffbeb', borderRadius: 20,
+              padding: '1.5rem', marginBottom: '2rem',
+              border: '1px solid #fde68a',
+              display: 'flex', flexDirection: 'column', gap: 16
+            }}>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#d97706', margin: 0 }}>
+                  {t.aiUnavailable}
+                </p>
+                <p style={{ fontSize: 12, color: '#78350f', marginTop: 4, margin: 0, opacity: 0.85 }}>
+                  {lang === 'te' ? 'కారణం: ' : 'Reason: '} {aiResult.reason || 'Unknown error'}
+                </p>
+              </div>
+              
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>
                   {t.manualChange}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {CATEGORIES.map(cat => (
                     <button
                       key={cat}
-                      onClick={() => {
-                        setCategory(cat)
-                      }}
+                      type="button"
+                      onClick={() => setCategory(cat)}
                       style={{
-                        padding: '0.4rem 0.9rem', borderRadius: 99, fontSize: 13, fontWeight: 600,
+                        padding: '8px 16px', borderRadius: 99, fontSize: 13, fontWeight: 600,
                         border: category === cat ? '2px solid #16a34a' : '1px solid #d1d5db',
-                        background: category === cat ? '#e8f5e9' : 'white',
-                        color: category === cat ? '#1b5e20' : '#4b5563',
-                        cursor: 'pointer', minHeight: '40px'
+                        background: category === cat ? '#f0fdf4' : 'white',
+                        color: category === cat ? '#15803d' : '#4b5563',
+                        cursor: 'pointer', minHeight: '44px',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        boxShadow: category === cat ? '0 4px 10px rgba(22,163,74,0.1)' : 'none'
                       }}>
-                      {CATEGORY_EMOJI[cat]} {t.categories[cat] || cat}
+                      {CATEGORY_EMOJI[cat] || ''} {t.categories[cat] || cat}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
 
-          </div>
-        )}
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
+                  {t.titleLabel} {t.descriptionOptional}
+                </p>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  maxLength={60}
+                  placeholder={t.titlePlaceholder}
+                  style={{
+                    width: '100%', padding: '0.85rem 1rem', border: '1px solid #cbd5e1', borderRadius: 12,
+                    fontSize: 14, color: '#374151', background: 'white', minHeight: '48px', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
+                  {t.descriptionLabel} {t.descriptionOptional}
+                </p>
+                <textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  maxLength={140}
+                  rows={3}
+                  placeholder={t.descriptionPlaceholder}
+                  style={{
+                    width: '100%', padding: '0.85rem 1rem', border: '1px solid #cbd5e1', borderRadius: 12,
+                    fontSize: 14, color: '#374151', background: 'white', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box'
+                  }}
+                />
+                <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'right', marginTop: 4, margin: 0 }}>
+                  {description.length}/140
+                </p>
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || !category || !location}
+                style={{
+                  background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                  color: 'white', padding: '1rem', borderRadius: 14, fontSize: 16, fontWeight: 700,
+                  width: '100%', minHeight: '52px', cursor: 'pointer', border: 'none',
+                  boxShadow: '0 4px 14px rgba(22, 163, 74, 0.2)'
+                }}>
+                {submitting ? t.submitting : t.submitBtn}
+              </button>
+              {!location && (
+                <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, textAlign: 'center', marginTop: 6, margin: 0 }}>
+                  {t.pleaseSelectLocation}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* STEP 3: Upgraded Premium "AI Analysis Complete" Card */}
+          {photo && !aiLoading && !aiUnavailable && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 20,
+              animation: 'scaleIn 0.3s ease-out'
+            }}>
+              
+              {/* Header bar */}
+              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: '#14532d', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {t.aiComplete}
+                </h2>
+              </div>
+
+              {/* Category chip visual box */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--primary-light)', padding: '12px 16px', borderRadius: 16, border: '1px solid var(--primary-border)' }}>
+                <span style={{ fontSize: 32 }}>{CATEGORY_EMOJI[category] || '📌'}</span>
+                <div>
+                  <p style={{ fontSize: 11, color: '#166534', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>{t.detectedIssue}</p>
+                  <p style={{ fontSize: 17, fontWeight: 800, color: '#111827', margin: 0 }}>{t.categories[category] || category}</p>
+                </div>
+              </div>
+
+              {/* Confidence progress bar */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                  <span>{t.confidenceLabel}</span>
+                  <span style={{ color: confidence >= 80 ? '#16a34a' : confidence >= 60 ? '#d97706' : '#dc2626' }}>
+                    {confidence}% {t.aiConfident}
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${confidence}%`,
+                    background: confidence >= 80 ? '#16a34a' : confidence >= 60 ? '#d97706' : '#dc2626',
+                    borderRadius: 99,
+                    transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }} />
+                </div>
+              </div>
+
+              {/* Low confidence warning banner */}
+              {confidence > 0 && confidence < 50 && (
+                <div style={{
+                  background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309',
+                  padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700
+                }}>
+                  {t.lowConfidence}
+                </div>
+              )}
+
+              {/* URGENT Banner */}
+              {urgent && (
+                <div style={{
+                  background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626',
+                  borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', gap: 8
+                }}>
+                  <span>{t.aiUrgent}</span>
+                </div>
+              )}
+
+              {/* Title parameter */}
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>{t.titleLabel}</p>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  maxLength={60}
+                  placeholder={t.titleLabel}
+                  style={{
+                    width: '100%', padding: '0.8rem 1rem', border: '1px solid #cbd5e1', borderRadius: 12,
+                    fontSize: 14, color: '#374151', background: 'white', minHeight: '48px', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Description parameter */}
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>{t.descLabel}</p>
+                <textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  maxLength={200}
+                  rows={3}
+                  placeholder={t.descLabel}
+                  style={{
+                    width: '100%', padding: '0.8rem 1rem', border: '1px solid #cbd5e1', borderRadius: 12,
+                    fontSize: 14, color: '#374151', background: 'white', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Secondary Issues array */}
+              {secondaryIssues && secondaryIssues.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>{t.alsoDetected || 'Also visible'}:</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {secondaryIssues.map(issue => (
+                      <span key={issue} style={{ background: '#f1f5f9', color: '#475569', padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 600, border: '1px solid #e2e8f0' }}>
+                        {issue}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Department tags details */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13, fontWeight: 600, color: '#166534', background: '#f8fafc', padding: '12px 16px', borderRadius: 16, border: '1px solid #e2e8f0' }}>
+                {estimatedRepair && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#6b7280', fontSize: 12 }}>🛠️ {t.aiEstimate}</span>
+                    <strong style={{ color: '#111827' }}>{estimatedRepair}</strong>
+                  </div>
+                )}
+                {department && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 8, marginTop: 4 }}>
+                    <span style={{ color: '#6b7280', fontSize: 12 }}>🏢 {t.aiDepartment}</span>
+                    <strong style={{ color: '#16a34a' }}>{department}</strong>
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm & overrides row buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || !location}
+                  style={{
+                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                    color: 'white', padding: '1rem', borderRadius: 14,
+                    fontSize: 16, fontWeight: 700, border: 'none',
+                    minHeight: '52px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 14px rgba(22, 163, 74, 0.25)'
+                  }}>
+                  {submitting ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="pulse-outline" style={{ width: 12, height: 12, borderRadius: '50%', background: 'white' }} />
+                      {t.submitting}
+                    </div>
+                  ) : t.aiConfirmSubmit}
+                </button>
+                {!location && (
+                  <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, textAlign: 'center', margin: 0 }}>
+                    {t.pleaseSelectLocation}
+                  </p>
+                )}
+
+                <button
+                  onClick={() => setShowCategoryOverride(!showCategoryOverride)}
+                  style={{
+                    background: 'white', color: '#4b5563', padding: '0.9rem', borderRadius: 14,
+                    fontSize: 14, fontWeight: 700, border: '1px solid #d1d5db',
+                    minHeight: '48px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                  ✏️ {showCategoryOverride ? t.hideOverrideButton || 'Hide Edit Options' : t.aiEditDetails}
+                </button>
+              </div>
+
+              {/* Override selector list */}
+              {showCategoryOverride && (
+                <div style={{
+                  marginTop: 8, paddingTop: 16, borderTop: '1px dashed var(--primary-border)',
+                  animation: 'scaleIn 0.3s ease-out'
+                }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#14532d', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {t.manualChange}
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {CATEGORIES.map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategory(cat)}
+                        style={{
+                          padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600,
+                          border: category === cat ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                          background: category === cat ? '#f0fdf4' : 'white',
+                          color: category === cat ? '#15803d' : '#4b5563',
+                          cursor: 'pointer', minHeight: '44px',
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          boxShadow: category === cat ? '0 4px 10px rgba(22,163,74,0.1)' : 'none',
+                          transform: category === cat ? 'scale(1.02)' : 'none'
+                        }}>
+                        <span style={{ fontSize: 16 }}>{CATEGORY_EMOJI[cat]}</span>
+                        <span>{t.categories[cat] || cat}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+        </div>
 
       </div>
     </main>
