@@ -1,4 +1,5 @@
 import './globals.css'
+import { LanguageProvider } from './lib/language'
 
 export const metadata = {
   title: 'QuickSewa — Report Civic Issues in Hyderabad',
@@ -8,7 +9,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
+      </body>
     </html>
   )
 }
+

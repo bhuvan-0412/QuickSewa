@@ -2,16 +2,19 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
+import { useLang } from './lib/language'
+import LangToggle from './components/LangToggle'
 
 export default function Home() {
+  const { t } = useLang()
   const [count, setCount] = useState(0)
   const [resolvedCount, setResolvedCount] = useState(0)
   const [wardsCount, setWardsCount] = useState(0)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     async function getStats() {
-      setError(null)
+      setError(false)
       try {
         const { count: total, error: err1 } = await supabase
           .from('complaints')
@@ -42,7 +45,7 @@ export default function Home() {
         setWardsCount(uniqueWards.size || 0)
       } catch (err) {
         console.error("Failed to fetch dashboard stats:", err)
-        setError("Unable to load stats")
+        setError(true)
       }
     }
     getStats()
@@ -56,8 +59,20 @@ export default function Home() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '2rem',
-      background: '#f0fdf4'
+      background: '#f0fdf4',
+      position: 'relative'
     }}>
+      
+      {/* Top-right interactive language selector pill */}
+      <div style={{
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        zIndex: 100
+      }}>
+        <LangToggle />
+      </div>
+
       <div style={{ textAlign: 'center', width: '100%', maxWidth: 440 }}>
 
         <div style={{
@@ -73,21 +88,21 @@ export default function Home() {
           fontSize: 44, fontWeight: 800,
           color: '#14532d', marginBottom: 6,
           letterSpacing: '-1px'
-        }}>QuickSewa</h1>
+        }}>{t.appName}</h1>
 
         <p style={{
           fontSize: 17, color: '#166534',
           fontWeight: 600, marginBottom: 6
-        }}>देखो · खींचो · ठीक करो</p>
+        }}>{t.tagline}</p>
 
         <p style={{
           fontSize: 14, color: '#4b5563',
           marginBottom: '2rem', lineHeight: 1.6
         }}>
-          Report civic issues in Hyderabad instantly.<br />
-          One photo. Zero forms. Direct to GHMC.
+          {t.taglineSub}
         </p>
 
+        {/* Animated stat cards */}
         {error ? (
           <div style={{
             background: 'white', borderRadius: 16,
@@ -97,7 +112,7 @@ export default function Home() {
             justifyContent: 'center', gap: 12
           }}>
             <span style={{ fontSize: 14, color: '#dc2626', fontWeight: 600 }}>
-              ⚠️ {error}
+              ⚠️ {t.unableToLoad}
             </span>
           </div>
         ) : (
@@ -129,8 +144,8 @@ export default function Home() {
               }}>
                 {count.toLocaleString()}
               </div>
-              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
-                Issues<br />Reported
+              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
+                {t.issuesReported}
               </div>
             </div>
 
@@ -155,8 +170,8 @@ export default function Home() {
               }}>
                 {resolvedCount.toLocaleString()}
               </div>
-              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
-                Resolved<br />This Week
+              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
+                {t.resolvedWeek}
               </div>
             </div>
 
@@ -181,8 +196,8 @@ export default function Home() {
               }}>
                 {wardsCount.toLocaleString()}
               </div>
-              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
-                Wards<br />Covered
+              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
+                {t.wardsCovered}
               </div>
             </div>
 
@@ -200,9 +215,14 @@ export default function Home() {
             fontSize: 18,
             fontWeight: 700,
             textAlign: 'center',
-            letterSpacing: '-0.3px'
+            letterSpacing: '-0.3px',
+            textDecoration: 'none',
+            minHeight: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            📸 Report an Issue
+            {t.reportBtn}
           </Link>
 
           <Link href="/map" style={{
@@ -214,9 +234,14 @@ export default function Home() {
             fontSize: 16,
             fontWeight: 600,
             textAlign: 'center',
-            border: '2px solid #16a34a'
+            border: '2px solid #16a34a',
+            textDecoration: 'none',
+            minHeight: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            🗺️ View Live Map
+            {t.mapBtn}
           </Link>
 
           <Link href="/dashboard" style={{
@@ -228,18 +253,24 @@ export default function Home() {
             fontSize: 14,
             fontWeight: 500,
             textAlign: 'center',
-            border: '1px solid #e5e7eb'
+            border: '1px solid #e5e7eb',
+            textDecoration: 'none',
+            minHeight: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            Officer Dashboard →
+            {t.dashboardBtn}
           </Link>
 
         </div>
 
         <p style={{ fontSize: 12, color: '#9ca3af', marginTop: '2rem' }}>
-          Serving Hyderabad · Built for GHMC
+          {t.footer}
         </p>
 
       </div>
     </main>
   )
 }
+

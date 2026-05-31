@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
+import { useLang } from '../lib/language'
+import LangToggle from '../components/LangToggle'
 
 const STATUS_COLOR = { open: '#dc2626', 'in-progress': '#d97706', resolved: '#16a34a' }
 const SEVERITY_COLOR = { Low: '#16a34a', Medium: '#d97706', High: '#dc2626' }
@@ -11,12 +13,19 @@ const CATEGORY_EMOJI = {
 }
 
 export default function Dashboard() {
+  const { t } = useLang()
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
   const [complaints, setComplaints] = useState([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('all')
   const [error, setError] = useState(null)
+
+  const statusLabel = {
+    open: t.open,
+    'in-progress': t.inProgress,
+    resolved: t.resolved
+  }
 
   function login() {
     if (password === 'officer123') setAuthed(true)
@@ -72,18 +81,18 @@ export default function Dashboard() {
 
   function timeAgo(dateStr) {
     const hrs = Math.floor((Date.now() - new Date(dateStr).getTime()) / 3600000)
-    if (hrs < 1) return 'Just now'
-    if (hrs < 24) return `${hrs}h ago`
-    return `${Math.floor(hrs / 24)}d ago`
+    if (hrs < 1) return t.justNow
+    if (hrs < 24) return `${hrs} ${t.hoursAgo}`
+    return `${Math.floor(hrs / 24)} ${t.daysAgo}`
   }
 
   function slaLabel(dateStr, status) {
-    if (status === 'resolved') return { text: 'Resolved', color: '#16a34a' }
+    if (status === 'resolved') return { text: t.resolved, color: '#16a34a' }
     const hrs = Math.floor((Date.now() - new Date(dateStr).getTime()) / 3600000)
     const remaining = 72 - hrs
-    if (remaining < 0) return { text: `${Math.abs(remaining)}h OVERDUE`, color: '#dc2626' }
-    if (remaining < 24) return { text: `${remaining}h left`, color: '#dc2626' }
-    return { text: `${remaining}h left`, color: '#d97706' }
+    if (remaining < 0) return { text: `${Math.abs(remaining)} ${t.hoursOverdue}`, color: '#dc2626' }
+    if (remaining < 24) return { text: `${remaining} ${t.hoursRemaining}`, color: '#dc2626' }
+    return { text: `${remaining} ${t.hoursRemaining}`, color: '#d97706' }
   }
 
   const filtered = filterStatus === 'all'
@@ -102,8 +111,18 @@ export default function Dashboard() {
       <main style={{
         minHeight: '100vh', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
-        background: '#f8fafc', padding: '2rem'
+        background: '#f8fafc', padding: '2rem',
+        position: 'relative'
       }}>
+        <div style={{
+          position: 'absolute',
+          top: 20,
+          right: 20,
+          zIndex: 100
+        }}>
+          <LangToggle />
+        </div>
+
         <div style={{
           background: 'white', borderRadius: 20,
           padding: '2.5rem', maxWidth: 380, width: '100%',
@@ -111,14 +130,14 @@ export default function Dashboard() {
         }}>
           <div style={{ fontSize: 48, marginBottom: '1rem' }}>🏛️</div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#14532d', marginBottom: 6 }}>
-            Officer Login
+            {t.officerLogin}
           </h1>
           <p style={{ fontSize: 14, color: '#6b7280', marginBottom: '1.5rem' }}>
-            GHMC Ward Officer Dashboard
+            {t.officerDashboard}
           </p>
           <input
             type="password"
-            placeholder="Enter password"
+            placeholder={t.enterPassword}
             value={password}
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && login()}
@@ -134,12 +153,13 @@ export default function Dashboard() {
             style={{
               width: '100%', background: '#16a34a',
               color: 'white', padding: '0.9rem',
-              borderRadius: 12, fontSize: 16, fontWeight: 700
+              borderRadius: 12, fontSize: 16, fontWeight: 700,
+              minHeight: '48px', cursor: 'pointer', border: 'none'
             }}>
-            Login →
+            {t.loginBtn}
           </button>
           <p style={{ fontSize: 12, color: '#9ca3af', marginTop: '1rem' }}>
-            Demo password: officer123
+            {t.demoPassword}
           </p>
         </div>
       </main>
@@ -156,24 +176,28 @@ export default function Dashboard() {
         justifyContent: 'space-between', flexWrap: 'wrap', gap: 12
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/" style={{ fontSize: 20, color: '#374151' }}>←</Link>
+          <Link href="/" style={{ fontSize: 20, color: '#374151', minHeight: '48px', display: 'flex', alignItems: 'center' }}>←</Link>
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 800, color: '#14532d' }}>
-              QuickSewa · Officer Dashboard
+            <h1 style={{ fontSize: 18, fontWeight: 800, color: '#14532d', margin: 0 }}>
+              {t.dashboardTitle}
             </h1>
-            <p style={{ fontSize: 12, color: '#6b7280' }}>GHMC Hyderabad · Sorted by upvotes</p>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>{t.dashboardSub}</p>
           </div>
         </div>
-        <button
-          onClick={fetchAll}
-          style={{
-            background: '#f0fdf4', color: '#15803d',
-            padding: '0.5rem 1rem', borderRadius: 10,
-            fontSize: 13, fontWeight: 600,
-            border: '1px solid #bbf7d0'
-          }}>
-          ↻ Refresh
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={fetchAll}
+            style={{
+              background: '#f0fdf4', color: '#15803d',
+              padding: '0.5rem 1rem', borderRadius: 10,
+              fontSize: 13, fontWeight: 600,
+              border: '1px solid #bbf7d0',
+              minHeight: '48px', cursor: 'pointer'
+            }}>
+            {t.refresh}
+          </button>
+          <LangToggle />
+        </div>
       </div>
 
       <div style={{
@@ -182,17 +206,17 @@ export default function Dashboard() {
         gap: 12, padding: '1.25rem 1.5rem'
       }}>
         {[
-          { label: 'Total', value: stats.total, color: '#374151' },
-          { label: 'Open', value: stats.open, color: '#dc2626' },
-          { label: 'In Progress', value: stats.inProgress, color: '#d97706' },
-          { label: 'Resolved', value: stats.resolved, color: '#16a34a' },
+          { label: t.total, value: stats.total, color: '#374151' },
+          { label: t.open, value: stats.open, color: '#dc2626' },
+          { label: t.inProgress, value: stats.inProgress, color: '#d97706' },
+          { label: t.resolved, value: stats.resolved, color: '#16a34a' },
         ].map(s => (
           <div key={s.label} style={{
             background: 'white', borderRadius: 14,
             padding: '1rem', border: '1px solid #e5e7eb', textAlign: 'center'
           }}>
-            <p style={{ fontSize: 28, fontWeight: 800, color: s.color }}>{s.value}</p>
-            <p style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{s.label}</p>
+            <p style={{ fontSize: 28, fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
+            <p style={{ fontSize: 13, color: '#6b7280', marginTop: 2, margin: '2px 0 0 0' }}>{s.label}</p>
           </div>
         ))}
       </div>
@@ -207,9 +231,10 @@ export default function Dashboard() {
               border: filterStatus === s ? '2px solid #16a34a' : '1px solid #e5e7eb',
               background: filterStatus === s ? '#f0fdf4' : 'white',
               color: filterStatus === s ? '#15803d' : '#6b7280',
-              textTransform: 'capitalize'
+              cursor: 'pointer', minHeight: '36px',
+              display: 'flex', alignItems: 'center'
             }}>
-            {s === 'all' ? 'All' : s}
+            {s === 'all' ? t.filterAll : (s === 'open' ? t.open : (s === 'in-progress' ? t.inProgress : t.resolved))}
           </button>
         ))}
       </div>
@@ -224,9 +249,9 @@ export default function Dashboard() {
             ⚠️ {error}
           </div>
         ) : loading ? (
-          <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>Loading...</p>
+          <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>{t.loading}</p>
         ) : filtered.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>No complaints found.</p>
+          <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>{t.noComplaints}</p>
         ) : (
           filtered.map(c => {
             const sla = slaLabel(c.created_at, c.status)
@@ -247,7 +272,9 @@ export default function Dashboard() {
                   <div style={{ padding: '0.875rem 1rem', flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 16 }}>{CATEGORY_EMOJI[c.category] || '📌'}</span>
-                      <span style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{c.category}</span>
+                      <span style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>
+                        {t.categories[c.category] || c.category}
+                      </span>
                       
                       {/* urgent badge in red if urgent is true */}
                       {(c.urgent === true || c.urgent === 'true') && (
@@ -264,7 +291,7 @@ export default function Dashboard() {
                         background: `${STATUS_COLOR[c.status]}15`,
                         color: STATUS_COLOR[c.status],
                         border: `1px solid ${STATUS_COLOR[c.status]}30`
-                      }}>{c.status}</span>
+                      }}>{statusLabel[c.status]}</span>
 
                       {/* confidence score as a small tag */}
                       {c.confidence !== undefined && c.confidence !== null && c.confidence > 0 && (
@@ -303,15 +330,15 @@ export default function Dashboard() {
                       </h3>
                     )}
 
-                    <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>
+                    <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 4, margin: '0 0 4px 0' }}>
                       📍 {c.ward} · {timeAgo(c.created_at)} · 👍 {c.upvotes}
                     </p>
                     {c.description && (
-                      <p style={{ fontSize: 13, color: '#374151', marginBottom: 4, lineHeight: 1.4 }}>
+                      <p style={{ fontSize: 13, color: '#374151', marginBottom: 4, lineHeight: 1.4, margin: '0 0 4px 0' }}>
                         {c.description}
                       </p>
                     )}
-                    <p style={{ fontSize: 12, fontWeight: 600, color: sla.color }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: sla.color, margin: 0 }}>
                       ⏱ {sla.text}
                     </p>
                   </div>
@@ -327,9 +354,10 @@ export default function Dashboard() {
                       onClick={() => updateStatus(c.id, 'in-progress')}
                       style={{
                         padding: '0.45rem 1rem', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                        background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a'
+                        background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a',
+                        minHeight: '36px', cursor: 'pointer'
                       }}>
-                      Mark In Progress
+                      {t.markInProgress}
                     </button>
                   )}
                   {c.status !== 'resolved' && (
@@ -337,14 +365,15 @@ export default function Dashboard() {
                       onClick={() => updateStatus(c.id, 'resolved')}
                       style={{
                         padding: '0.45rem 1rem', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                        background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0'
+                        background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0',
+                        minHeight: '36px', cursor: 'pointer'
                       }}>
-                      ✓ Mark Resolved
+                      {t.markResolved}
                     </button>
                   )}
                   {c.status === 'resolved' && (
                     <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, padding: '0.45rem 0' }}>
-                      ✅ Issue resolved
+                      {t.issueResolved}
                     </span>
                   )}
                 </div>

@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { useLang } from '../lib/language'
+import LangToggle from '../components/LangToggle'
 
 const CATEGORIES = ['Pothole', 'Garbage', 'Streetlight', 'Waterlogging', 'Encroachment', 'Other']
 const CATEGORY_EMOJI = {
@@ -11,6 +13,7 @@ const CATEGORY_EMOJI = {
 const SEVERITY_COLOR = { Low: '#16a34a', Medium: '#d97706', High: '#dc2626' }
 
 export default function Report() {
+  const { t, lang } = useLang()
   const router = useRouter()
   const fileRef = useRef()
 
@@ -41,7 +44,8 @@ export default function Report() {
   const [location, setLocation] = useState(null)
   const [locationStatus, setLocationStatus] = useState('idle') // 'idle' | 'loading' | 'done' | 'error'
 
-  // Inject Pulsing Scanning Animation and slide keyframes in head
+
+  // Inject Pulsing Scanning Animation in head
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!document.getElementById('pulse-animation-style')) {
@@ -487,7 +491,7 @@ export default function Report() {
             background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a',
             marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 6
           }}>
-            ⏳ Getting your location via GPS...
+            ⏳ {t.locationLoading}
           </div>
         )
       }
@@ -498,7 +502,7 @@ export default function Report() {
             background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0',
             marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: 2
           }}>
-            <span style={{ fontWeight: 700 }}>📍 GPS Location Found:</span>
+            <span style={{ fontWeight: 700 }}>📍 {t.locationFound}</span>
             <span>Ward: <strong>{getWard(location.lat, location.lng)}</strong></span>
             <span style={{ fontSize: 11, opacity: 0.8 }}>Coords: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span>
           </div>
@@ -511,7 +515,7 @@ export default function Report() {
             background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca',
             marginBottom: '1rem'
           }}>
-            ❌ GPS unavailable — please pick on map instead.
+            ❌ Could not get GPS. Please pick on map instead.
           </div>
         )
       }
@@ -523,7 +527,7 @@ export default function Report() {
             background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0',
             marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: 2
           }}>
-            <span style={{ fontWeight: 700 }}>📍 Map Selection Coords:</span>
+            <span style={{ fontWeight: 700 }}>📍 {t.selectedLocation}</span>
             <span>Ward: <strong>{getWard(location.lat, location.lng)}</strong></span>
             <span style={{ fontSize: 11, opacity: 0.8 }}>Coords: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span>
           </div>
@@ -535,13 +539,14 @@ export default function Report() {
             background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a',
             marginBottom: '1rem'
           }}>
-            👆 Tap the map below to drop a pin.
+            {t.tapMapPin}
           </div>
         )
       }
     }
     return null
   }
+
 
   if (submitted) {
     return (
@@ -553,21 +558,19 @@ export default function Report() {
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
           <div style={{ fontSize: 64, marginBottom: '1rem' }}>✅</div>
           <h2 style={{ fontSize: 26, fontWeight: 800, color: '#14532d', marginBottom: 8 }}>
-            Complaint Filed!
+            {t.complaintFiled}
           </h2>
           <div style={{
             background: 'white', borderRadius: 16, padding: '1rem',
             border: '1px solid #bbf7d0', marginBottom: '1.5rem'
           }}>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Your complaint ID</p>
+            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>{t.yourComplaintId}</p>
             <p style={{ fontSize: 28, fontWeight: 800, color: '#15803d', letterSpacing: 2 }}>
               #{complaintId}
             </p>
           </div>
           <p style={{ fontSize: 14, color: '#4b5563', marginBottom: '2rem', lineHeight: 1.6 }}>
-            Your complaint has been sent to the GHMC ward officer.
-            You will receive an update within <strong>72 hours</strong>.
-            If unresolved, it will auto-escalate to the supervisor.
+            {t.complaintSentText}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <button
@@ -580,7 +583,7 @@ export default function Report() {
                 border: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-              📄 View Complaint Report
+              {t.viewReport}
             </button>
             <button
               onClick={() => router.push('/map')}
@@ -592,7 +595,7 @@ export default function Report() {
                 minHeight: '48px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-              🗺️ View on Live Map
+              {t.viewOnMap}
             </button>
             <button
               onClick={() => router.push('/')}
@@ -603,7 +606,7 @@ export default function Report() {
                 minHeight: '48px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-              Back to Home
+              {t.backToHome}
             </button>
           </div>
         </div>
@@ -616,23 +619,30 @@ export default function Report() {
       minHeight: '100vh',
       background: '#f8fafc',
       padding: '1.5rem',
-      paddingBottom: '4rem'
+      paddingBottom: '4rem',
+      position: 'relative'
     }}>
+      
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem' }}>
-          <button
-            onClick={() => router.push('/')}
-            style={{
-              background: 'white', borderRadius: 10,
-              padding: '0.5rem 0.75rem', fontSize: 20,
-              border: '1px solid #e5e7eb',
-              minHeight: '48px', cursor: 'pointer'
-            }}>←</button>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#14532d' }}>
-            Report an Issue
-          </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={() => router.push('/')}
+              style={{
+                background: 'white', borderRadius: 10,
+                padding: '0.5rem 0.75rem', fontSize: 20,
+                border: '1px solid #e5e7eb',
+                minHeight: '48px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>←</button>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#14532d', margin: 0 }}>
+              {t.reportTitle}
+            </h1>
+          </div>
+          <LangToggle />
         </div>
+
 
         {/* Photo Selection Area */}
         <div
@@ -665,17 +675,17 @@ export default function Report() {
                   padding: '0.4rem 0.9rem', borderRadius: 8,
                   fontSize: 13, minHeight: '40px', cursor: 'pointer', border: 'none'
                 }}>
-                Change photo
+                {t.changePhoto}
               </button>
             </>
           ) : (
             <>
               <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
               <p style={{ fontWeight: 600, color: '#15803d', fontSize: 16 }}>
-                Tap to take a photo
+                {t.tapToTake}
               </p>
               <p style={{ fontSize: 13, color: '#9ca3af', marginTop: 4 }}>
-                or choose from gallery
+                {t.orChoose}
               </p>
             </>
           )}
@@ -694,7 +704,7 @@ export default function Report() {
         {photo && (
           <div style={{ marginBottom: '1.25rem' }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Select Location Mode
+              {t.selectLocationMode}
             </p>
             
             {/* Cards side by side */}
@@ -715,10 +725,10 @@ export default function Report() {
               >
                 <span style={{ fontSize: 28, display: 'block', marginBottom: 6 }}>📍</span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#14532d', display: 'block' }}>
-                  Use My Location
+                  {t.useMyLocation}
                 </span>
                 <span style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginTop: 2 }}>
-                  Auto-detected via GPS
+                  {t.gpsSub}
                 </span>
               </div>
 
@@ -738,10 +748,10 @@ export default function Report() {
               >
                 <span style={{ fontSize: 28, display: 'block', marginBottom: 6 }}>🗺️</span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#14532d', display: 'block' }}>
-                  Pick on Map
+                  {t.pickOnMap}
                 </span>
                 <span style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginTop: 2 }}>
-                  Tap anywhere on Hyderabad map
+                  {t.mapSub}
                 </span>
               </div>
             </div>
@@ -780,7 +790,7 @@ export default function Report() {
           }}>
             <span style={{ fontSize: 36, display: 'block', transform: 'scale(1.2)' }}>🤖</span>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#14532d', margin: 0 }}>
-              QuickSewa AI is analysing your photo...
+              {t.aiAnalysing}
             </p>
             <div style={{
               width: '100%', height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden', position: 'relative'
@@ -809,16 +819,16 @@ export default function Report() {
           }}>
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#d97706', margin: 0 }}>
-                ⚠️ AI analysis unavailable — please fill in details manually
+                {t.aiUnavailable}
               </p>
               <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4, margin: 0 }}>
-                Reason: {aiResult.reason || 'Unknown error'}
+                {lang === 'te' ? 'కారణం: ' : 'Reason: '} {aiResult.reason || 'Unknown error'}
               </p>
             </div>
             
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-                Issue type
+                {t.manualChange}
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {CATEGORIES.map(cat => (
@@ -832,7 +842,7 @@ export default function Report() {
                       color: category === cat ? '#15803d' : '#6b7280',
                       cursor: 'pointer', minHeight: '40px'
                     }}>
-                    {CATEGORY_EMOJI[cat] || ''} {cat}
+                    {CATEGORY_EMOJI[cat] || ''} {t.categories[cat] || cat}
                   </button>
                 ))}
               </div>
@@ -840,14 +850,14 @@ export default function Report() {
 
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-                Grievance Title
+                {t.optionalTitle}
               </p>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 maxLength={60}
-                placeholder="Give it a title (optional)"
+                placeholder={t.optionalTitlePlaceholder}
                 style={{
                   width: '100%', padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: 12,
                   fontSize: 14, color: '#374151', background: 'white', minHeight: '48px', boxSizing: 'border-box'
@@ -857,14 +867,14 @@ export default function Report() {
 
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-                Description
+                {t.optionalDescription}
               </p>
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 maxLength={140}
                 rows={3}
-                placeholder="Describe what is visible..."
+                placeholder={t.optionalDescPlaceholder}
                 style={{
                   width: '100%', padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: 12,
                   fontSize: 14, color: '#374151', background: 'white', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box'
@@ -883,11 +893,11 @@ export default function Report() {
                 color: 'white', padding: '1rem', borderRadius: 14, fontSize: 17, fontWeight: 700,
                 width: '100%', minHeight: '48px', cursor: submitting || !category || !location ? 'not-allowed' : 'pointer', border: 'none'
               }}>
-              {submitting ? 'Submitting...' : 'Submit Complaint →'}
+              {submitting ? t.submittingButton : t.submitButton}
             </button>
             {!location && (
               <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, textAlign: 'center', marginTop: 6, margin: '6px 0 0 0' }}>
-                ⚠️ Please select a location to continue
+                {t.pleaseSelectLocation}
               </p>
             )}
           </div>
@@ -904,7 +914,7 @@ export default function Report() {
             {/* Analysis Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: 18, fontWeight: 800, color: '#14532d', margin: 0 }}>
-                AI Analysis Complete ✨
+                {t.aiComplete}
               </h2>
             </div>
 
@@ -912,17 +922,17 @@ export default function Report() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', padding: '10px 14px', borderRadius: 12, border: '1px solid #d1fae5' }}>
               <span style={{ fontSize: 24 }}>{CATEGORY_EMOJI[category] || '📌'}</span>
               <div>
-                <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Detected Issue</p>
-                <p style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0 }}>{category || 'Other'}</p>
+                <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>{t.detectedIssue}</p>
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0 }}>{t.categories[category] || category || t.categories.Other}</p>
               </div>
             </div>
 
             {/* Confidence progress bar */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
-                <span>Detection Confidence</span>
+                <span>{t.confidenceLabel}</span>
                 <span style={{ color: confidence >= 80 ? '#16a34a' : confidence >= 60 ? '#d97706' : '#dc2626' }}>
-                  {confidence}% confident
+                  {confidence}% {t.aiConfident}
                 </span>
               </div>
               <div style={{ width: '100%', height: 10, background: '#e5e7eb', borderRadius: 99, overflow: 'hidden' }}>
@@ -942,7 +952,7 @@ export default function Report() {
                 background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309',
                 padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700
               }}>
-                ⚠️ Low confidence detection — please verify the issue type
+                {t.lowConfidence}
               </div>
             )}
 
@@ -953,19 +963,19 @@ export default function Report() {
                 borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 700,
                 display: 'flex', alignItems: 'center', gap: 6
               }}>
-                <span>🚨 Urgent — This issue poses immediate risk to citizens</span>
+                <span>{t.urgentText}</span>
               </div>
             )}
 
             {/* Title override */}
             <div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Title</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>{t.titleLabel}</p>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 maxLength={60}
-                placeholder="Title"
+                placeholder={t.titleLabel}
                 style={{
                   width: '100%', padding: '0.75rem 1rem', border: '1px solid #bbf7d0', borderRadius: 12,
                   fontSize: 14, color: '#374151', background: 'white', minHeight: '48px', boxSizing: 'border-box'
@@ -975,13 +985,13 @@ export default function Report() {
 
             {/* Description override */}
             <div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Description</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>{t.descLabel}</p>
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 maxLength={200}
                 rows={3}
-                placeholder="Description"
+                placeholder={t.descLabel}
                 style={{
                   width: '100%', padding: '0.75rem 1rem', border: '1px solid #bbf7d0', borderRadius: 12,
                   fontSize: 14, color: '#374151', background: 'white', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box'
@@ -1006,10 +1016,10 @@ export default function Report() {
             {/* Department and estimated repair tags */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, color: '#166534', background: 'white', padding: '10px 14px', borderRadius: 12, border: '1px solid #d1fae5' }}>
               {estimatedRepair && (
-                <div>🛠️ Estimated repair: <strong style={{ color: '#15803d' }}>{estimatedRepair}</strong></div>
+                <div>🛠️ {t.aiEstimate}: <strong style={{ color: '#15803d' }}>{estimatedRepair}</strong></div>
               )}
               {department && (
-                <div>🏢 Responsible: <strong style={{ color: '#15803d' }}>→ {department}</strong></div>
+                <div>🏢 {t.aiDepartment}: <strong style={{ color: '#15803d' }}>→ {department}</strong></div>
               )}
             </div>
 
@@ -1025,11 +1035,11 @@ export default function Report() {
                   minHeight: '48px', cursor: submitting || !location ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
-                {submitting ? 'Submitting...' : 'Confirm & Submit ✓'}
+                {submitting ? t.submittingButton : t.confirmSubmitButton}
               </button>
               {!location && (
                 <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, textAlign: 'center', margin: '0 0 6px 0' }}>
-                  ⚠️ Please select a location to continue
+                  {t.pleaseSelectLocation}
                 </p>
               )}
 
@@ -1041,7 +1051,7 @@ export default function Report() {
                   minHeight: '48px', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
-                ✏️ {showCategoryOverride ? 'Hide Edit Options' : 'Edit Details / Override'}
+                ✏️ {showCategoryOverride ? t.hideOverrideButton : t.editOverrideButton}
               </button>
             </div>
 
@@ -1051,7 +1061,7 @@ export default function Report() {
                 marginTop: 8, paddingTop: 14, borderTop: '1px dashed #bbf7d0'
               }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: '#14532d', marginBottom: 8, margin: '0 0 8px 0' }}>
-                  Manually change category:
+                  {t.manualChange}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {CATEGORIES.map(cat => (
@@ -1067,7 +1077,7 @@ export default function Report() {
                         color: category === cat ? '#1b5e20' : '#4b5563',
                         cursor: 'pointer', minHeight: '40px'
                       }}>
-                      {CATEGORY_EMOJI[cat]} {cat}
+                      {CATEGORY_EMOJI[cat]} {t.categories[cat] || cat}
                     </button>
                   ))}
                 </div>
