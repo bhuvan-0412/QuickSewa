@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&family=Noto+Sans+Telugu:wght@300;400;500;600;700;800&display=swap');
-
 :root {
   --primary: #16a34a;
   --primary-hover: #15803d;
@@ -17,8 +15,8 @@
   --radius-md: 16px;
   --radius-lg: 24px;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --font-telugu: 'Noto Sans Telugu', sans-serif;
-  --font-sans: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-telugu: var(--font-noto-telugu), sans-serif;
+  --font-sans: var(--font-poppins), var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 *, *::before, *::after {
