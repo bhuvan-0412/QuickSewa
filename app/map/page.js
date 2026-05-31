@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import LangToggle from "../components/LangToggle";
 import { useLang } from "../lib/language";
 import { supabase } from "../lib/supabase";
@@ -64,7 +64,7 @@ export default function MapPage() {
     }
   }, []);
 
-  async function fetchComplaints() {
+  const fetchComplaints = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -80,7 +80,7 @@ export default function MapPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   async function upvote(id) {
     if (upvoting) return;
@@ -176,10 +176,7 @@ export default function MapPage() {
         window._map = null;
       }
     };
-  }, [
-    leafletLoaded, // Render custom status-colored emoji markers
-    filtered.forEach,
-  ]);
+  }, [leafletLoaded, complaints, filter]);
 
   return (
     <main
