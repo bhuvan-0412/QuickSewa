@@ -91,8 +91,7 @@ export default function Dashboard() {
     const hrs = Math.floor((Date.now() - new Date(dateStr).getTime()) / 3600000)
     const remaining = 72 - hrs
     if (remaining < 0) return { text: `${Math.abs(remaining)} ${t.hoursOverdue}`, color: '#dc2626' }
-    if (remaining < 24) return { text: `${remaining} ${t.hoursRemaining}`, color: '#dc2626' }
-    return { text: `${remaining} ${t.hoursRemaining}`, color: '#d97706' }
+    return null
   }
 
   const filtered = filterStatus === 'all'
@@ -364,9 +363,11 @@ export default function Dashboard() {
                         {c.description}
                       </p>
                     )}
-                    <p style={{ fontSize: 12, fontWeight: 700, color: sla.color, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      ⏱️ {sla.text}
-                    </p>
+                    {sla && (
+                      <p style={{ fontSize: 12, fontWeight: 700, color: sla.color, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        ⏱️ {sla.text}
+                      </p>
+                    )}
                   </div>
                 </div>
 

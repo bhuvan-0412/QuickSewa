@@ -363,11 +363,7 @@ export default function MapPage() {
                   if (sla < 0) return (
                     <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>🚨 {t.escalated} · {Math.abs(sla)} {t.hoursOverdue}</span>
                   )
-                  return (
-                    <span style={{ fontSize: 13, color: sla < 24 ? '#dc2626' : '#d97706', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      ⏱️ {sla} {t.hoursRemaining}
-                    </span>
-                  )
+                  return null
                 })()}
               </div>
 

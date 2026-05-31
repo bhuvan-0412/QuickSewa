@@ -116,11 +116,7 @@ export default function ComplaintReport() {
         bg: '#fef2f2'
       }
     }
-    return {
-      text: `⏱️ ${remaining} ${t.slaRemaining}`,
-      color: '#d97706',
-      bg: '#fffbeb'
-    }
+    return null
   }
 
   if (loading) {
@@ -222,9 +218,11 @@ export default function ComplaintReport() {
             </div>
           )}
           
-          <div style={{ background: sla.bg, border: `1px solid ${sla.color}33`, borderRadius: 12, padding: '1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: sla.color, margin: 0 }}>{sla.text}</p>
-          </div>
+          {sla && (
+            <div style={{ background: sla.bg, border: `1px solid ${sla.color}33`, borderRadius: 12, padding: '1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: sla.color, margin: 0 }}>{sla.text}</p>
+            </div>
+          )}
         </div>
 
         {/* Complaint Body Grid */}
