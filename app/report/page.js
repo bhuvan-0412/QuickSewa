@@ -158,6 +158,9 @@ export default function Report() {
       setPhoto(URL.createObjectURL(file))
       getLocation()
       await classifyWithAI(file)
+      if (fileRef.current) {
+        fileRef.current.value = ''
+      }
     }
   }
 
@@ -169,6 +172,9 @@ export default function Report() {
     setPhoto(URL.createObjectURL(file))
     getLocation()
     await classifyWithAI(file)
+    if (fileRef.current) {
+      fileRef.current.value = ''
+    }
   }
 
   // AI Classification with timeout & raw response safety
@@ -733,7 +739,10 @@ export default function Report() {
                 {aiLoading && <div className="scanner-bar" />}
 
                 <button
-                  onClick={() => fileRef.current.click()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    fileRef.current.click()
+                  }}
                   style={{
                     position: 'absolute', bottom: 12, right: 12,
                     background: 'rgba(0,0,0,0.7)', color: 'white',

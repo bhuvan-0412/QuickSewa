@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 
 export const translations = {
   en: {
@@ -260,7 +260,23 @@ export const LanguageContext = createContext({
 })
 
 export function LanguageProvider({ children }) {
-  const [lang, setLang] = useState('en')
+  const [lang, setLangState] = useState('en')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('quicksewa_lang')
+      if (saved && (saved === 'en' || saved === 'te')) {
+        setLangState(saved)
+      }
+    }
+  }, [])
+
+  const setLang = (newLang) => {
+    setLangState(newLang)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('quicksewa_lang', newLang)
+    }
+  }
   return (
     <LanguageContext.Provider value={{ lang, setLang, t: translations[lang] }}>
       {children}
