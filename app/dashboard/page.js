@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import LangToggle from "../components/LangToggle";
 import { useLang } from "../lib/language";
 import { supabase } from "../lib/supabase";
@@ -36,12 +36,7 @@ export default function Dashboard() {
     else alert("Wrong password");
   }
 
-  useEffect(() => {
-    if (!authed) return;
-    fetchAll();
-  }, [authed, fetchAll]);
-
-  async function fetchAll() {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -65,7 +60,12 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!authed) return;
+    fetchAll();
+  }, [authed, fetchAll]);
 
   async function updateStatus(id, status) {
     try {

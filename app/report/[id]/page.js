@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import LangToggle from "../../components/LangToggle";
 import { useLang } from "../../lib/language";
 import { supabase } from "../../lib/supabase";
@@ -21,7 +21,6 @@ const CATEGORY_EMOJI = {
 export default function ComplaintReport() {
   const { t, lang } = useLang();
   const params = useParams();
-  const _router = useRouter();
   const id = params.id;
 
   const [complaint, setComplaint] = useState(null);
@@ -36,13 +35,7 @@ export default function ComplaintReport() {
     resolved: t.resolved,
   };
 
-  useEffect(() => {
-    if (id) {
-      fetchComplaint();
-    }
-  }, [id, fetchComplaint]);
-
-  async function fetchComplaint() {
+  const fetchComplaint = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -59,7 +52,13 @@ export default function ComplaintReport() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id, t]);
+
+  useEffect(() => {
+    if (id) {
+      fetchComplaint();
+    }
+  }, [id, fetchComplaint]);
 
   async function handleUpvote() {
     if (!complaint || upvoting) return;
@@ -80,11 +79,15 @@ export default function ComplaintReport() {
     }
   }
 
-  function handleShare() {
-    if (typeof window === "undefined") return;
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function handleShare() {
+    if (typeof window === "undefined" || !navigator.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn("Clipboard write failed:", err);
+    }
   }
 
   function formatDate(dateStr) {
@@ -248,6 +251,9 @@ export default function ComplaintReport() {
             padding: 0 !important;
             margin: 0 !important;
             max-width: 100% !important;
+          }
+          .print-only {
+            display: block !important;
           }
         }
       `,
