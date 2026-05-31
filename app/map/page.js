@@ -2,15 +2,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
+import { useLang } from '../lib/language'
+import LangToggle from '../components/LangToggle'
 
 const STATUS_COLOR = { open: '#dc2626', 'in-progress': '#d97706', resolved: '#16a34a' }
-const STATUS_LABEL = { open: 'Open', 'in-progress': 'In Progress', resolved: 'Resolved' }
 const CATEGORY_EMOJI = {
   Pothole: '🕳️', Garbage: '🗑️', Streetlight: '💡',
   Waterlogging: '💧', Encroachment: '🚧', Other: '📌'
 }
 
 export default function MapPage() {
+  const { t } = useLang()
   const [complaints, setComplaints] = useState([])
   const [selected, setSelected] = useState(null)
   const [filter, setFilter] = useState('All')
@@ -18,6 +20,12 @@ export default function MapPage() {
   const [error, setError] = useState(null)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
   const [upvoting, setUpvoting] = useState(false)
+
+  const statusLabel = {
+    open: t.open,
+    'in-progress': t.inProgress,
+    resolved: t.resolved
+  }
 
   // 1. Fetch complaints on mount
   useEffect(() => {
@@ -108,9 +116,9 @@ export default function MapPage() {
     if (!dateStr) return ''
     const diff = Date.now() - new Date(dateStr).getTime()
     const hrs = Math.floor(diff / 3600000)
-    if (hrs < 1) return 'Just now'
-    if (hrs < 24) return `${hrs}h ago`
-    return `${Math.floor(hrs / 24)}d ago`
+    if (hrs < 1) return t.justNow
+    if (hrs < 24) return `${hrs} ${t.hoursAgo}`
+    return `${Math.floor(hrs / 24)} ${t.daysAgo}`
   }
 
   function getSlaHours(dateStr, status) {
@@ -184,14 +192,17 @@ export default function MapPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Link href="/" style={{ fontSize: 20, color: '#374151', textDecoration: 'none', display: 'flex', alignItems: 'center', minHeight: '48px', padding: '0 8px' }}>←</Link>
           <h1 style={{ fontSize: 18, fontWeight: 700, color: '#14532d', margin: 0 }}>
-            QuickSewa · Live Map
+            {t.mapTitle}
           </h1>
         </div>
-        <div style={{
-          background: '#f0fdf4', padding: '6px 14px',
-          borderRadius: 99, fontSize: 13, color: '#15803d', fontWeight: 600
-        }}>
-          {filtered.length} issues shown
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            background: '#f0fdf4', padding: '6px 14px',
+            borderRadius: 99, fontSize: 13, color: '#15803d', fontWeight: 600
+          }}>
+            {filtered.length} {t.issues}
+          </div>
+          <LangToggle />
         </div>
       </div>
 
@@ -217,7 +228,7 @@ export default function MapPage() {
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 4
             }}>
-            {CATEGORY_EMOJI[cat] || ''} {cat}
+            {CATEGORY_EMOJI[cat] || ''} {cat === 'All' ? t.filterAll : (t.categories[cat] || cat)}
           </button>
         ))}
       </div>
@@ -268,7 +279,7 @@ export default function MapPage() {
                 width: 10, height: 10, borderRadius: '50%', background: color
               }} />
               <span style={{ fontSize: 12, color: '#4b5563', fontWeight: 600 }}>
-                {STATUS_LABEL[status]}
+                {statusLabel[status]}
               </span>
             </div>
           ))}
@@ -290,7 +301,7 @@ export default function MapPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 22 }}>{CATEGORY_EMOJI[selected.category]}</span>
                   <span style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>
-                    {selected.category}
+                    {t.categories[selected.category] || selected.category}
                   </span>
                   <span style={{
                     fontSize: 11, padding: '3px 10px', borderRadius: 99, fontWeight: 700,
@@ -298,7 +309,7 @@ export default function MapPage() {
                     color: STATUS_COLOR[selected.status],
                     border: `1px solid ${STATUS_COLOR[selected.status]}40`
                   }}>
-                    {STATUS_LABEL[selected.status]}
+                    {statusLabel[selected.status]}
                   </span>
                 </div>
                 <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
@@ -347,16 +358,12 @@ export default function MapPage() {
                 {(() => {
                   const sla = getSlaHours(selected.created_at, selected.status)
                   if (sla === null) return (
-                    <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>✅ Resolved</span>
+                    <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>✅ {t.resolved}</span>
                   )
                   if (sla < 0) return (
-                    <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>🚨 Escalated · {Math.abs(sla)}h overdue</span>
+                    <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>🚨 {t.escalated} · {Math.abs(sla)} {t.hoursOverdue}</span>
                   )
-                  return (
-                    <span style={{ fontSize: 13, color: sla < 24 ? '#dc2626' : '#d97706', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      ⏱️ {sla}h remaining
-                    </span>
-                  )
+                  return null
                 })()}
               </div>
 
@@ -375,7 +382,7 @@ export default function MapPage() {
                     alignItems: 'center',
                     gap: 6
                   }}>
-                  👍 {selected.upvotes || 0} Same issue
+                  👍 {selected.upvotes || 0} {t.sameIssue}
                 </button>
                 <Link
                   href={`/report/${selected.id}`}
@@ -390,7 +397,7 @@ export default function MapPage() {
                     justifyContent: 'center',
                     gap: 4
                   }}>
-                  📄 View Report
+                  📄 {t.viewReport}
                 </Link>
               </div>
             </div>

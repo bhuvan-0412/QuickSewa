@@ -2,16 +2,19 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
+import { useLang } from './lib/language'
+import LangToggle from './components/LangToggle'
 
 export default function Home() {
+  const { t } = useLang()
   const [count, setCount] = useState(0)
   const [resolvedCount, setResolvedCount] = useState(0)
   const [wardsCount, setWardsCount] = useState(0)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     async function getStats() {
-      setError(null)
+      setError(false)
       try {
         const { count: total, error: err1 } = await supabase
           .from('complaints')
@@ -42,7 +45,7 @@ export default function Home() {
         setWardsCount(uniqueWards.size || 0)
       } catch (err) {
         console.error("Failed to fetch dashboard stats:", err)
-        setError("Unable to load stats")
+        setError(true)
       }
     }
     getStats()
@@ -55,134 +58,179 @@ export default function Home() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '2rem',
-      background: '#f0fdf4'
+      padding: '2rem 1rem',
+      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+      position: 'relative'
     }}>
-      <div style={{ textAlign: 'center', width: '100%', maxWidth: 440 }}>
+      
+      {/* Top-right interactive language selector pill */}
+      <div style={{
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        zIndex: 100
+      }}>
+        <LangToggle />
+      </div>
+
+      <div className="animated-card" style={{
+        background: 'rgba(255, 255, 255, 0.9)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '24px',
+        padding: '2.5rem 2rem',
+        width: '100%',
+        maxWidth: '480px',
+        boxShadow: 'var(--shadow-md)',
+        border: '1px solid rgba(22, 163, 74, 0.15)',
+        textAlign: 'center'
+      }}>
+        {/* Soft green GHMC badge */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'rgba(22, 163, 74, 0.1)',
+          color: '#16a34a',
+          fontSize: '12px',
+          fontWeight: 700,
+          padding: '6px 14px',
+          borderRadius: '99px',
+          marginBottom: '1.25rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          <span>🛡️</span> GHMC HYDERABAD
+        </div>
 
         <div style={{
-          width: 80, height: 80, borderRadius: '50%',
-          background: '#16a34a',
+          width: 72, height: 72, borderRadius: '50%',
+          background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
           display: 'flex', alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 1.5rem',
-          fontSize: 38
+          margin: '0 auto 1.25rem',
+          fontSize: 32,
+          boxShadow: '0 8px 20px rgba(22, 163, 74, 0.3)',
+          color: 'white'
         }}>📍</div>
 
         <h1 style={{
-          fontSize: 44, fontWeight: 800,
-          color: '#14532d', marginBottom: 6,
-          letterSpacing: '-1px'
-        }}>QuickSewa</h1>
+          fontSize: '36px', fontWeight: 800,
+          color: '#14532d', marginBottom: 8,
+          letterSpacing: '-1px',
+          lineHeight: 1.2
+        }}>{t.appName}</h1>
+
+        <p className="telugu-text" style={{
+          fontSize: '16px', color: '#166534',
+          fontWeight: 600, marginBottom: 8
+        }}>{t.tagline}</p>
 
         <p style={{
-          fontSize: 17, color: '#166534',
-          fontWeight: 600, marginBottom: 6
-        }}>देखो · खींचो · ठीक करो</p>
-
-        <p style={{
-          fontSize: 14, color: '#4b5563',
+          fontSize: '14px', color: '#4b5563',
           marginBottom: '2rem', lineHeight: 1.6
         }}>
-          Report civic issues in Hyderabad instantly.<br />
-          One photo. Zero forms. Direct to GHMC.
+          {t.taglineSub}
         </p>
 
+        {/* Animated stat cards */}
         {error ? (
           <div style={{
-            background: 'white', borderRadius: 16,
-            padding: '1rem 1.5rem', marginBottom: '2rem',
+            background: '#fef2f2', borderRadius: 16,
+            padding: '1rem', marginBottom: '2rem',
             border: '1px solid #fca5a5',
             display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: 12
+            justifyContent: 'center', gap: 8
           }}>
-            <span style={{ fontSize: 14, color: '#dc2626', fontWeight: 600 }}>
-              ⚠️ {error}
+            <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>
+              ⚠️ {t.unableToLoad}
             </span>
           </div>
         ) : (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 10,
+            gap: 12,
             marginBottom: '2rem'
           }}>
 
-            <div style={{
-              background: 'white',
-              borderRadius: 14,
-              padding: '0.875rem 0.5rem',
-              border: '1px solid #bbf7d0',
-              textAlign: 'center',
-              transition: 'transform 0.2s',
-              cursor: 'default'
-            }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            <div 
+              className="hover-lift"
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '1rem 0.5rem',
+                border: '1px solid #e2e8f0',
+                boxShadow: 'var(--shadow-sm)',
+                textAlign: 'center',
+                cursor: 'default'
+              }}
             >
+              <div style={{ fontSize: '20px', marginBottom: '4px' }}>📋</div>
               <div style={{
-                fontSize: 28,
+                fontSize: '22px',
                 fontWeight: 800,
-                color: '#15803d',
-                lineHeight: 1,
-                marginBottom: 5
+                color: '#16a34a',
+                lineHeight: 1.1,
+                marginBottom: 4
               }}>
                 {count.toLocaleString()}
               </div>
-              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
-                Issues<br />Reported
+              <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: 600, lineHeight: 1.3, whiteSpace: 'pre-line' }}>
+                {t.issuesReported}
               </div>
             </div>
 
-            <div style={{
-              background: 'white',
-              borderRadius: 14,
-              padding: '0.875rem 0.5rem',
-              border: '1px solid #bbf7d0',
-              textAlign: 'center',
-              transition: 'transform 0.2s',
-              cursor: 'default'
-            }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            <div 
+              className="hover-lift"
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '1rem 0.5rem',
+                border: '1px solid #e2e8f0',
+                boxShadow: 'var(--shadow-sm)',
+                textAlign: 'center',
+                cursor: 'default'
+              }}
             >
+              <div style={{ fontSize: '20px', marginBottom: '4px' }}>✅</div>
               <div style={{
-                fontSize: 28,
+                fontSize: '22px',
                 fontWeight: 800,
-                color: '#15803d',
-                lineHeight: 1,
-                marginBottom: 5
+                color: '#16a34a',
+                lineHeight: 1.1,
+                marginBottom: 4
               }}>
                 {resolvedCount.toLocaleString()}
               </div>
-              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
-                Resolved<br />This Week
+              <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: 600, lineHeight: 1.3, whiteSpace: 'pre-line' }}>
+                {t.resolvedWeek}
               </div>
             </div>
 
-            <div style={{
-              background: 'white',
-              borderRadius: 14,
-              padding: '0.875rem 0.5rem',
-              border: '1px solid #bbf7d0',
-              textAlign: 'center',
-              transition: 'transform 0.2s',
-              cursor: 'default'
-            }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            <div 
+              className="hover-lift"
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '1rem 0.5rem',
+                border: '1px solid #e2e8f0',
+                boxShadow: 'var(--shadow-sm)',
+                textAlign: 'center',
+                cursor: 'default'
+              }}
             >
+              <div style={{ fontSize: '20px', marginBottom: '4px' }}>🗺️</div>
               <div style={{
-                fontSize: 28,
+                fontSize: '22px',
                 fontWeight: 800,
-                color: '#15803d',
-                lineHeight: 1,
-                marginBottom: 5
+                color: '#16a34a',
+                lineHeight: 1.1,
+                marginBottom: 4
               }}>
                 {wardsCount.toLocaleString()}
               </div>
-              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
-                Wards<br />Covered
+              <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: 600, lineHeight: 1.3, whiteSpace: 'pre-line' }}>
+                {t.wardsCovered}
               </div>
             </div>
 
@@ -192,51 +240,84 @@ export default function Home() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
           <Link href="/report" style={{
-            display: 'block',
-            background: '#16a34a',
+            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
             color: 'white',
-            padding: '1.1rem 2rem',
-            borderRadius: 14,
-            fontSize: 18,
+            padding: '1rem 2rem',
+            borderRadius: '14px',
+            fontSize: '16px',
             fontWeight: 700,
-            textAlign: 'center',
-            letterSpacing: '-0.3px'
-          }}>
-            📸 Report an Issue
+            boxShadow: '0 4px 14px rgba(22, 163, 74, 0.25)',
+            textDecoration: 'none',
+            minHeight: '52px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'var(--transition)'
+          }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+          >
+            {t.reportBtn}
           </Link>
 
           <Link href="/map" style={{
-            display: 'block',
             background: 'white',
             color: '#16a34a',
             padding: '1rem 2rem',
-            borderRadius: 14,
-            fontSize: 16,
-            fontWeight: 600,
-            textAlign: 'center',
-            border: '2px solid #16a34a'
-          }}>
-            🗺️ View Live Map
+            borderRadius: '14px',
+            fontSize: '15px',
+            fontWeight: 700,
+            border: '2px solid #16a34a',
+            textDecoration: 'none',
+            minHeight: '52px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'var(--transition)'
+          }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--primary-light)'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'white'
+              e.currentTarget.style.transform = 'none'
+            }}
+          >
+            {t.mapBtn}
           </Link>
 
           <Link href="/dashboard" style={{
-            display: 'block',
-            background: 'white',
-            color: '#6b7280',
+            background: 'transparent',
+            color: '#4b5563',
             padding: '0.8rem 2rem',
-            borderRadius: 14,
-            fontSize: 14,
-            fontWeight: 500,
-            textAlign: 'center',
-            border: '1px solid #e5e7eb'
-          }}>
-            Officer Dashboard →
+            borderRadius: '14px',
+            fontSize: '13px',
+            fontWeight: 600,
+            border: '1px solid #d1d5db',
+            textDecoration: 'none',
+            minHeight: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'var(--transition)'
+          }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#f9fafb'
+              e.currentTarget.style.borderColor = '#9ca3af'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.borderColor = '#d1d5db'
+            }}
+          >
+            {t.dashboardBtn}
           </Link>
 
         </div>
 
-        <p style={{ fontSize: 12, color: '#9ca3af', marginTop: '2rem' }}>
-          Serving Hyderabad · Built for GHMC
+        <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2.5rem', fontWeight: 500, letterSpacing: '0.5px' }}>
+          {t.footer}
         </p>
 
       </div>

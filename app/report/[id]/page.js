@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
+import { useLang } from '../../lib/language'
+import LangToggle from '../../components/LangToggle'
 
 const STATUS_COLOR = { open: '#dc2626', 'in-progress': '#d97706', resolved: '#16a34a' }
 const STATUS_BG = { open: '#fef2f2', 'in-progress': '#fffbeb', resolved: '#f0fdf4' }
-const STATUS_LABEL = { open: 'Open', 'in-progress': 'In Progress', resolved: 'Resolved' }
 const SEVERITY_COLOR = { Low: '#16a34a', Medium: '#d97706', High: '#dc2626' }
 const CATEGORY_EMOJI = {
   Pothole: '🕳️', Garbage: '🗑️', Streetlight: '💡',
@@ -14,6 +15,7 @@ const CATEGORY_EMOJI = {
 }
 
 export default function ComplaintReport() {
+  const { t, lang } = useLang()
   const params = useParams()
   const router = useRouter()
   const id = params.id
@@ -23,6 +25,12 @@ export default function ComplaintReport() {
   const [error, setError] = useState(null)
   const [copied, setCopied] = useState(false)
   const [upvoting, setUpvoting] = useState(false)
+
+  const statusLabel = {
+    open: t.open,
+    'in-progress': t.inProgress,
+    resolved: t.resolved
+  }
 
   useEffect(() => {
     if (id) {
@@ -43,7 +51,7 @@ export default function ComplaintReport() {
       setComplaint(data)
     } catch (err) {
       console.error('Failed to load complaint report:', err)
-      setError('Unable to locate this complaint report. It may have been removed or does not exist.')
+      setError(t.detailsNotLoaded)
     } finally {
       setLoading(false)
     }
@@ -81,7 +89,8 @@ export default function ComplaintReport() {
       const date = new Date(dateStr)
       const day = date.getDate()
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-      const month = months[date.getMonth()]
+      const monthsTe = ['జనవరి', 'ఫిబ్రవరి', 'మార్చి', 'ఏప్రిల్', 'మే', 'జూన్', 'జూలై', 'ఆగస్టు', 'సెప్టెంబరు', 'అక్టోబరు', 'నవంబరు', 'డిసెంబరు']
+      const month = lang === 'te' ? monthsTe[date.getMonth()] : months[date.getMonth()]
       const year = date.getFullYear()
       let hours = date.getHours()
       const minutes = date.getMinutes().toString().padStart(2, '0')
@@ -96,28 +105,24 @@ export default function ComplaintReport() {
 
   function getSlaStatus(dateStr, status) {
     if (status === 'resolved') {
-      return { text: 'Resolved — SLA Closed', color: '#16a34a', bg: '#f0fdf4' }
+      return { text: t.slaClosed, color: '#16a34a', bg: '#f0fdf4' }
     }
     const hrs = Math.floor((Date.now() - new Date(dateStr).getTime()) / 3600000)
     const remaining = 72 - hrs
     if (remaining < 0) {
       return {
-        text: `🚨 SLA Overdue by ${Math.abs(remaining)}h (Escalated to GHMC Supervisor)`,
+        text: `🚨 ${t.slaOverdue} ${Math.abs(remaining)}${t.escalatedSupervisor}`,
         color: '#dc2626',
         bg: '#fef2f2'
       }
     }
-    return {
-      text: `⏱️ ${remaining}h remaining for resolution (On Track)`,
-      color: '#d97706',
-      bg: '#fffbeb'
-    }
+    return null
   }
 
   if (loading) {
     return (
       <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-        <p style={{ fontSize: 16, color: '#6b7280' }}>Loading official grievance report...</p>
+        <p style={{ fontSize: 16, color: '#6b7280' }}>{t.loadingReport}</p>
       </main>
     )
   }
@@ -127,10 +132,10 @@ export default function ComplaintReport() {
       <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: '2rem' }}>
         <div style={{ background: 'white', borderRadius: 20, padding: '2rem', maxWidth: 440, width: '100%', border: '1px solid #fca5a5', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: '1rem' }}>⚠️</div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#b91c1c', marginBottom: 12 }}>Report Not Found</h2>
-          <p style={{ fontSize: 14, color: '#4b5563', lineHeight: 1.6, marginBottom: '1.5rem' }}>{error || 'The requested complaint details could not be loaded.'}</p>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#b91c1c', marginBottom: 12 }}>{t.reportNotFound}</h2>
+          <p style={{ fontSize: 14, color: '#4b5563', lineHeight: 1.6, marginBottom: '1.5rem' }}>{error || t.detailsNotLoaded}</p>
           <Link href="/map" style={{ display: 'block', background: '#16a34a', color: 'white', padding: '0.8rem', borderRadius: 12, fontSize: 15, fontWeight: 600, textDecoration: 'none', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            Go back to Live Map
+            {t.goLiveMap}
           </Link>
         </div>
       </main>
@@ -162,18 +167,19 @@ export default function ComplaintReport() {
       ` }} />
 
       {/* Control row */}
-      <div className="no-print" style={{ maxWidth: 680, margin: '0 auto 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="no-print" style={{ maxWidth: 680, margin: '0 auto 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <Link href="/map" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#166534', fontWeight: 600, textDecoration: 'none', fontSize: 15, padding: '8px 16px', background: 'white', borderRadius: 10, border: '1px solid #bbf7d0', minHeight: '48px' }}>
-          ← Back to Live Map
+          {t.backLiveMap}
         </Link>
         
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button onClick={handleShare} style={{ background: 'white', border: '1px solid #bbf7d0', color: '#166534', fontWeight: 600, padding: '8px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 14, minHeight: '48px', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            🔗 {copied ? 'Copied URL!' : 'Share URL'}
+            🔗 {copied ? t.copiedUrl : t.shareUrl}
           </button>
           <button onClick={() => window.print()} style={{ background: '#16a34a', border: 'none', color: 'white', fontWeight: 700, padding: '8px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 14, minHeight: '48px', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            🖨️ Print Document
+            🖨️ {t.printDoc}
           </button>
+          <LangToggle />
         </div>
       </div>
 
@@ -188,12 +194,12 @@ export default function ComplaintReport() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 24 }}>📍</span>
-              <h1 style={{ fontSize: 24, fontWeight: 800, color: '#14532d', margin: 0, letterSpacing: '-0.5px' }}>QuickSewa</h1>
+              <h1 style={{ fontSize: 24, fontWeight: 800, color: '#14532d', margin: 0, letterSpacing: '-0.5px' }}>{t.appName}</h1>
             </div>
-            <p style={{ fontSize: 12, color: '#166534', fontWeight: 600, margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Greater Hyderabad Municipal Corporation</p>
+            <p style={{ fontSize: 12, color: '#166534', fontWeight: 600, margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>{t.ghmcHeader}</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Grievance ID</span>
+            <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{t.grievanceId}</span>
             <span style={{ display: 'inline-block', background: '#f3f4f6', color: '#1f2937', fontWeight: 800, fontSize: 15, padding: '4px 10px', borderRadius: 8, fontFamily: 'monospace' }}>#{shortId}</span>
           </div>
         </div>
@@ -207,14 +213,16 @@ export default function ComplaintReport() {
             }}>
               <span style={{ fontSize: 18 }}>🚨</span>
               <p style={{ fontSize: 14, fontWeight: 800, color: '#dc2626', margin: 0 }}>
-                CRITICAL EMERGENCY — Immediate civic hazard detected.
+                {t.criticalEmergency}
               </p>
             </div>
           )}
           
-          <div style={{ background: sla.bg, border: `1px solid ${sla.color}33`, borderRadius: 12, padding: '1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: sla.color, margin: 0 }}>{sla.text}</p>
-          </div>
+          {sla && (
+            <div style={{ background: sla.bg, border: `1px solid ${sla.color}33`, borderRadius: 12, padding: '1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: sla.color, margin: 0 }}>{sla.text}</p>
+            </div>
+          )}
         </div>
 
         {/* Complaint Body Grid */}
@@ -231,33 +239,33 @@ export default function ComplaintReport() {
           {/* Grid Layout of parameters */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', background: '#f9fafb', padding: '1.25rem', borderRadius: 16, border: '1px solid #f3f4f6' }}>
             <div>
-              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>Category</span>
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>{t.categoryLabel}</span>
               <span style={{ fontSize: 15, fontWeight: 700, color: '#111827', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                {CATEGORY_EMOJI[complaint.category] || '📌'} {complaint.category}
+                {CATEGORY_EMOJI[complaint.category] || '📌'} {t.categories[complaint.category] || complaint.category}
               </span>
             </div>
             
             <div>
-              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>Status</span>
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>{t.statusLabel}</span>
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '4px 12px', borderRadius: 99, fontWeight: 700,
                 background: STATUS_BG[complaint.status] || '#f3f4f6',
                 color: STATUS_COLOR[complaint.status] || '#6b7280',
                 border: `1px solid ${(STATUS_COLOR[complaint.status])}30`
               }}>
-                ● {STATUS_LABEL[complaint.status]}
+                ● {statusLabel[complaint.status]}
               </span>
             </div>
 
             <div>
-              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>Ward Location</span>
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>{t.wardLocation}</span>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
                 📍 {complaint.ward}
               </span>
             </div>
 
             <div>
-              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>Filed On</span>
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>{t.filedOn}</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
                 🕒 {formatDate(complaint.created_at)}
               </span>
@@ -266,7 +274,7 @@ export default function ComplaintReport() {
             {/* Department tag */}
             {complaint.department && (
               <div>
-                <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>GHMC Department</span>
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>{t.ghmcDept}</span>
                 <span style={{ fontSize: 14, fontWeight: 800, color: '#166534' }}>
                   🏢 {complaint.department}
                 </span>
@@ -276,7 +284,7 @@ export default function ComplaintReport() {
             {/* Estimated Repair Cost */}
             {complaint.estimated_repair && (
               <div>
-                <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>Estimated Repair Cost</span>
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 }}>{t.estimatedRepairCost}</span>
                 <span style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>
                   🛠️ {complaint.estimated_repair}
                 </span>
@@ -288,8 +296,8 @@ export default function ComplaintReport() {
           {complaint.confidence !== undefined && complaint.confidence !== null && complaint.confidence > 0 && (
             <div style={{ background: '#f0fdf4', border: '1px solid #d1fae5', padding: '1rem', borderRadius: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
-                <span>AI Confidence Gauge</span>
-                <span>{complaint.confidence}% accurate match</span>
+                <span>{t.aiConfidenceGauge}</span>
+                <span>{complaint.confidence}% {t.accurateMatch}</span>
               </div>
               <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
                 <div style={{
@@ -305,14 +313,14 @@ export default function ComplaintReport() {
           {/* Description */}
           {complaint.description && (
             <div>
-              <h3 style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Description</h3>
+              <h3 style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{t.descriptionLabel}</h3>
               <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.6, margin: 0, padding: '1rem', background: '#f8fafc', borderRadius: 12, borderLeft: '4px solid #16a34a' }}>
                 {complaint.description}
               </p>
             </div>
           )}
 
-          {/* Secondary Issues array pills */}
+          {/* Secondary Observations array pills */}
           {(() => {
             if (!complaint.secondary_issues) return null
             try {
@@ -322,7 +330,7 @@ export default function ComplaintReport() {
               if (!Array.isArray(parsed) || parsed.length === 0) return null
               return (
                 <div>
-                  <h3 style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Secondary Observations</h3>
+                  <h3 style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{t.secondaryObservations}</h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {parsed.map(issue => (
                       <span key={issue} style={{ background: '#f3f4f6', color: '#4b5563', padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 700, border: '1px solid #e5e7eb' }}>
@@ -340,7 +348,7 @@ export default function ComplaintReport() {
           {/* Photo evidence */}
           {complaint.photo_url && (
             <div>
-              <h3 style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Uploaded Photo Evidence</h3>
+              <h3 style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{t.photoEvidence}</h3>
               <img
                 src={complaint.photo_url}
                 alt="Civic Issue Evidence"
@@ -354,11 +362,11 @@ export default function ComplaintReport() {
           {/* Technical metadata */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f3f4f6', paddingTop: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ fontSize: 12, color: '#6b7280' }}>
-              <strong>GPS Coordinates:</strong> {complaint.latitude?.toFixed(6)}, {complaint.longitude?.toFixed(6)}
+              <strong>{t.gpsCoords}:</strong> {complaint.latitude?.toFixed(6)}, {complaint.longitude?.toFixed(6)}
             </div>
             
             <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 13, color: '#6b7280' }}>Is this affecting your area too?</span>
+              <span style={{ fontSize: 13, color: '#6b7280' }}>{t.affectingAreaToo}</span>
               <button
                 onClick={handleUpvote}
                 disabled={upvoting}
@@ -369,7 +377,7 @@ export default function ComplaintReport() {
                   border: '1px solid #bbf7d0', cursor: 'pointer',
                   minHeight: '48px', display: 'flex', alignItems: 'center', gap: 6
                 }}>
-                👍 {complaint.upvotes || 0} Same issue
+                👍 {complaint.upvotes || 0} {t.sameIssue}
               </button>
             </div>
 
@@ -382,8 +390,8 @@ export default function ComplaintReport() {
 
         {/* Footer of Printable Page */}
         <div style={{ marginTop: '3rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
-          <span>Generated by QuickSewa Portal</span>
-          <span>GHMC Civic Redressal Desk</span>
+          <span>{t.portalFooter}</span>
+          <span>{t.deskFooter}</span>
         </div>
 
       </div>
