@@ -50,6 +50,11 @@ export const translations = {
     aiEstimate: 'Estimated repair',
     aiDepartment: 'Responsible dept',
     alsoDetected: 'Also detected',
+    manualChange: 'Select issue type manually',
+    descLabel: 'Description',
+    pleaseSelectLocation: 'Please select a location first',
+    hideOverrideButton: 'Hide Edit Options',
+    selectLocationMode: 'Location Selector',
 
     loadingReport: 'Loading official grievance report...',
     reportNotFound: 'Report Not Found',
@@ -175,6 +180,11 @@ export const translations = {
     aiEstimate: 'అంచనా మరమ్మత్తు ఖర్చు',
     aiDepartment: 'బాధ్యత గల విభాగం',
     alsoDetected: 'కూడా గుర్తించబడింది',
+    manualChange: 'సమస్య రకాన్ని మాన్యువల్గా ఎంచుకోండి',
+    descLabel: 'వివరణ',
+    pleaseSelectLocation: 'దయచేసి ముందుగా స్థానాన్ని ఎంచుకోండి',
+    hideOverrideButton: 'ఎడిట్ ఆప్షన్లు దాచు',
+    selectLocationMode: 'స్థాన ఎంపిక',
 
     loadingReport: 'అధికారిక ఫిర్యాదు నివేదికను లోడ్ చేస్తోంది...',
     reportNotFound: 'ఫిర్యాదు కనుగొనబడలేదు',

@@ -83,6 +83,7 @@ export default function Report() {
   // Form Core States
   const [photo, setPhoto] = useState(null)
   const [photoFile, setPhotoFile] = useState(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState(null)
   const [aiUnavailable, setAiUnavailable] = useState(false)
@@ -209,11 +210,9 @@ export default function Report() {
       }
       setPhotoFile(file)
       setPhoto(URL.createObjectURL(file))
+      setFileInputKey(k => k + 1)
       getLocation()
       await classifyWithAI(file)
-      if (fileRef.current) {
-        fileRef.current.value = ''
-      }
     }
   }
 
@@ -223,11 +222,9 @@ export default function Report() {
     if (!file) return
     setPhotoFile(file)
     setPhoto(URL.createObjectURL(file))
+    setFileInputKey(k => k + 1)
     getLocation()
     await classifyWithAI(file)
-    if (fileRef.current) {
-      fileRef.current.value = ''
-    }
   }
 
   // AI Classification with timeout & raw response safety
@@ -826,10 +823,10 @@ export default function Report() {
           </div>
 
           <input
+            key={fileInputKey}
             ref={fileRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handlePhoto}
             style={{ display: 'none' }}
           />
@@ -838,7 +835,7 @@ export default function Report() {
           {photo && (
             <div style={{ marginBottom: '2rem' }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#4b5563', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                {t.selectLocationMode || 'Location Selector'}
+                {t.selectLocationMode}
               </p>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.25rem' }}>
@@ -1138,7 +1135,7 @@ export default function Report() {
               {/* Secondary Issues array */}
               {secondaryIssues && secondaryIssues.length > 0 && (
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>{t.alsoDetected || 'Also visible'}:</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>{t.alsoDetected}:</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {secondaryIssues.map(issue => (
                       <span key={issue} style={{ background: '#f1f5f9', color: '#475569', padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 600, border: '1px solid #e2e8f0' }}>
@@ -1199,7 +1196,7 @@ export default function Report() {
                     minHeight: '48px', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}>
-                  ✏️ {showCategoryOverride ? t.hideOverrideButton || 'Hide Edit Options' : t.aiEditDetails}
+                  ✏️ {showCategoryOverride ? t.hideOverrideButton : t.aiEditDetails}
                 </button>
               </div>
 

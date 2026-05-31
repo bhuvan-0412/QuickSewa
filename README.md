@@ -65,7 +65,6 @@ Supports multiple languages including:
 
 * English
 * Telugu
-* Hindi
 
 This ensures accessibility for a wider population.
 
@@ -158,8 +157,8 @@ Users can monitor complaint progress through stages such as:
 
 ### Backend
 
-* Node.js
-* Express.js
+* Supabase (Serverless)
+* Next.js API / Server Components
 
 ### Database
 
@@ -168,21 +167,21 @@ Users can monitor complaint progress through stages such as:
 
 ### Storage
 
-* Cloudinary / Supabase Storage
+* Supabase Storage
 
 ### Maps
 
 * OpenStreetMap
-* Leaflet.js
+* Leaflet.js (CDN)
 
 ### Location Services
 
 * Browser Geolocation API
 
-### AI Integration (Future Enhancements)
+### AI Integration
 
-* Gemini Vision API
-* Image Classification Models
+* Google Gemini 1.5 Flash (Vision API)
+* Automatic issue classification from photos
 
 ---
 
