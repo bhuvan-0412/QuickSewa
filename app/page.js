@@ -5,13 +5,20 @@ import { supabase } from './lib/supabase'
 
 export default function Home() {
   const [count, setCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     async function getCount() {
-      const { count } = await supabase
-        .from('complaints')
-        .select('*', { count: 'exact', head: true })
-      setCount(count || 0)
+      try {
+        const { count: fetchedCount, error: fetchError } = await supabase
+          .from('complaints')
+          .select('*', { count: 'exact', head: true })
+        if (fetchError) throw fetchError
+        setCount(fetchedCount || 0)
+      } catch (err) {
+        console.error("Failed to fetch complaint count:", err)
+        setError("Unable to load stats")
+      }
     }
     getCount()
   }, [])
@@ -59,16 +66,24 @@ export default function Home() {
         <div style={{
           background: 'white', borderRadius: 16,
           padding: '1rem 1.5rem', marginBottom: '2rem',
-          border: '1px solid #bbf7d0',
+          border: error ? '1px solid #fca5a5' : '1px solid #bbf7d0',
           display: 'flex', alignItems: 'center',
           justifyContent: 'center', gap: 12
         }}>
-          <span style={{ fontSize: 28, fontWeight: 800, color: '#15803d' }}>
-            {count.toLocaleString()}
-          </span>
-          <span style={{ fontSize: 14, color: '#166534', textAlign: 'left', lineHeight: 1.4 }}>
-            civic issues<br />reported so far
-          </span>
+          {error ? (
+            <span style={{ fontSize: 14, color: '#dc2626', fontWeight: 600 }}>
+              ⚠️ {error}
+            </span>
+          ) : (
+            <>
+              <span style={{ fontSize: 28, fontWeight: 800, color: '#15803d' }}>
+                {count.toLocaleString()}
+              </span>
+              <span style={{ fontSize: 14, color: '#166534', textAlign: 'left', lineHeight: 1.4 }}>
+                civic issues<br />reported so far
+              </span>
+            </>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
