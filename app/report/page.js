@@ -22,6 +22,59 @@ function toBase64(file) {
   })
 }
 
+// Client-side lightweight Canvas image compressor to speed up uploads significantly
+function compressImage(file) {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !file) {
+      resolve(file)
+      return
+    }
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target.result
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+        
+        const MAX_SIZE = 1200
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width
+            width = MAX_SIZE
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height
+            height = MAX_SIZE
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve(file)
+            return
+          }
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          })
+          resolve(compressedFile)
+        }, 'image/jpeg', 0.8)
+      }
+      img.onerror = () => resolve(file)
+    }
+    reader.onerror = () => resolve(file)
+  })
+}
+
 export default function Report() {
   const { t, lang } = useLang()
   const router = useRouter()
@@ -372,12 +425,15 @@ export default function Report() {
     setSubmitting(true)
 
     try {
-      const extension = photoFile.name.split('.').pop() || 'jpg'
+      // Compress the image file to speed up the upload process significantly
+      const fileToUpload = await compressImage(photoFile)
+
+      const extension = fileToUpload.name.split('.').pop() || 'jpg'
       const fileName = `complaint_${Date.now()}.${extension}`
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('complaint-photos')
-        .upload(fileName, photoFile)
+        .upload(fileName, fileToUpload)
 
       if (uploadError) throw uploadError
 
@@ -436,12 +492,12 @@ export default function Report() {
       setComplaintId(shortId)
       setFullComplaintId(insertResult[0].id)
 
-      // Optional Resend email notify
+      // Optional Resend email notify - Fired asynchronously to prevent blocking user submission
       try {
         const resendApiKey = process.env.NEXT_PUBLIC_RESEND_API_KEY || process.env.RESEND_API_KEY
         if (resendApiKey) {
           const reportUrl = `${window.location.origin}/report/${insertResult[0].id}`
-          await fetch('https://api.resend.com/emails', {
+          fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${resendApiKey}`,
@@ -453,10 +509,10 @@ export default function Report() {
               subject: `New ${category} complaint in ${ward} — Severity: ${severity}`,
               html: `<p>New complaint details can be loaded at <a href="${reportUrl}">View Report</a>.</p>`
             })
-          })
+          }).catch(e => console.warn("Resend email failed:", e))
         }
       } catch (e) {
-        console.warn("Resend email failed:", e)
+        console.warn("Resend email setup failed:", e)
       }
 
       setSubmitted(true)
