@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.env*.local
+.env.local
+.pre-commit-config.yaml
+.gitlab-ci.yml
+__tests__
+Dockerfile
+README.md
+CONTRIBUTING.md
+USER_MANUAL.md
+AGENTS.md
+CHANGELOG.md

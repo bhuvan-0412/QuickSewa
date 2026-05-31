@@ -1,0 +1,68 @@
+stages:
+  - lint
+  - test
+  - audit
+  - build
+
+variables:
+  DOCKER_DRIVER: overlay2
+
+cache:
+  paths:
+    - .npm/
+    - node_modules/
+
+# 1. Lint & Format check (ESLint & Biome)
+lint_code:
+  stage: lint
+  image: node:18-alpine
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run lint
+
+# 2. Dead Code Check (Knip)
+dead_code_check:
+  stage: lint
+  image: node:18-alpine
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run knip
+
+# 3. Secret Scanning (Gitleaks)
+gitleaks_scan:
+  stage: audit
+  image:
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - gitleaks detect --verbose --source=$CI_PROJECT_DIR
+
+# 4. Dependency Audit (npm audit)
+dependency_audit:
+  stage: audit
+  image: node:18-alpine
+  script:
+    - npm audit --audit-level=high
+
+# 5. Coverage Reporting & Tests
+test_coverage:
+  stage: test
+  image: node:18-alpine
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run test:cov
+  coverage: '/All files\s*\|\s*([\d\.]+)/'
+  artifacts:
+    paths:
+      - coverage/
+
+# 6. Docker Build
+docker_build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t quicksewa:latest .
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "feat/intial_code"'
