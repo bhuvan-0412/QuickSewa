@@ -5,22 +5,47 @@ import { supabase } from './lib/supabase'
 
 export default function Home() {
   const [count, setCount] = useState(0)
+  const [resolvedCount, setResolvedCount] = useState(0)
+  const [wardsCount, setWardsCount] = useState(0)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    async function getCount() {
+    async function getStats() {
+      setError(null)
       try {
-        const { count: fetchedCount, error: fetchError } = await supabase
+        const { count: total, error: err1 } = await supabase
           .from('complaints')
           .select('*', { count: 'exact', head: true })
-        if (fetchError) throw fetchError
-        setCount(fetchedCount || 0)
+        if (err1) throw err1
+
+        const oneWeekAgo = new Date()
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+
+        const { count: resolved, error: err2 } = await supabase
+          .from('complaints')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'resolved')
+          .gte('created_at', oneWeekAgo.toISOString())
+        if (err2) throw err2
+
+        const { data: wardsData, error: err3 } = await supabase
+          .from('complaints')
+          .select('ward')
+        if (err3) throw err3
+
+        const uniqueWards = new Set(
+          (wardsData || []).map(r => r.ward).filter(Boolean)
+        )
+
+        setCount(total || 0)
+        setResolvedCount(resolved || 0)
+        setWardsCount(uniqueWards.size || 0)
       } catch (err) {
-        console.error("Failed to fetch complaint count:", err)
+        console.error("Failed to fetch dashboard stats:", err)
         setError("Unable to load stats")
       }
     }
-    getCount()
+    getStats()
   }, [])
 
   return (
@@ -63,28 +88,106 @@ export default function Home() {
           One photo. Zero forms. Direct to GHMC.
         </p>
 
-        <div style={{
-          background: 'white', borderRadius: 16,
-          padding: '1rem 1.5rem', marginBottom: '2rem',
-          border: error ? '1px solid #fca5a5' : '1px solid #bbf7d0',
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'center', gap: 12
-        }}>
-          {error ? (
+        {error ? (
+          <div style={{
+            background: 'white', borderRadius: 16,
+            padding: '1rem 1.5rem', marginBottom: '2rem',
+            border: '1px solid #fca5a5',
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'center', gap: 12
+          }}>
             <span style={{ fontSize: 14, color: '#dc2626', fontWeight: 600 }}>
               ⚠️ {error}
             </span>
-          ) : (
-            <>
-              <span style={{ fontSize: 28, fontWeight: 800, color: '#15803d' }}>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 10,
+            marginBottom: '2rem'
+          }}>
+
+            <div style={{
+              background: 'white',
+              borderRadius: 14,
+              padding: '0.875rem 0.5rem',
+              border: '1px solid #bbf7d0',
+              textAlign: 'center',
+              transition: 'transform 0.2s',
+              cursor: 'default'
+            }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{
+                fontSize: 28,
+                fontWeight: 800,
+                color: '#15803d',
+                lineHeight: 1,
+                marginBottom: 5
+              }}>
                 {count.toLocaleString()}
-              </span>
-              <span style={{ fontSize: 14, color: '#166534', textAlign: 'left', lineHeight: 1.4 }}>
-                civic issues<br />reported so far
-              </span>
-            </>
-          )}
-        </div>
+              </div>
+              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
+                Issues<br />Reported
+              </div>
+            </div>
+
+            <div style={{
+              background: 'white',
+              borderRadius: 14,
+              padding: '0.875rem 0.5rem',
+              border: '1px solid #bbf7d0',
+              textAlign: 'center',
+              transition: 'transform 0.2s',
+              cursor: 'default'
+            }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{
+                fontSize: 28,
+                fontWeight: 800,
+                color: '#15803d',
+                lineHeight: 1,
+                marginBottom: 5
+              }}>
+                {resolvedCount.toLocaleString()}
+              </div>
+              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
+                Resolved<br />This Week
+              </div>
+            </div>
+
+            <div style={{
+              background: 'white',
+              borderRadius: 14,
+              padding: '0.875rem 0.5rem',
+              border: '1px solid #bbf7d0',
+              textAlign: 'center',
+              transition: 'transform 0.2s',
+              cursor: 'default'
+            }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{
+                fontSize: 28,
+                fontWeight: 800,
+                color: '#15803d',
+                lineHeight: 1,
+                marginBottom: 5
+              }}>
+                {wardsCount.toLocaleString()}
+              </div>
+              <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
+                Wards<br />Covered
+              </div>
+            </div>
+
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
