@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [complaints, setComplaints] = useState([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('all')
+  const [error, setError] = useState(null)
 
   function login() {
     if (password === 'officer123') setAuthed(true)
@@ -28,17 +29,45 @@ export default function Dashboard() {
   }, [authed])
 
   async function fetchAll() {
-    const { data } = await supabase
-      .from('complaints')
-      .select('*')
-      .order('upvotes', { ascending: false })
-    setComplaints(data || [])
-    setLoading(false)
+    setLoading(true)
+    setError(null)
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('complaints')
+        .select('*')
+      if (fetchError) throw fetchError
+
+      // Sort automatically: urgent DESC, upvotes DESC
+      const sorted = (data || []).sort((a, b) => {
+        const aUrgent = a.urgent === true || a.urgent === 'true' ? 1 : 0
+        const bUrgent = b.urgent === true || b.urgent === 'true' ? 1 : 0
+        if (aUrgent !== bUrgent) {
+          return bUrgent - aUrgent
+        }
+        return (b.upvotes || 0) - (a.upvotes || 0)
+      })
+
+      setComplaints(sorted)
+    } catch (err) {
+      console.error("Dashboard failed to fetch complaints:", err)
+      setError("Failed to load complaints from the server.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function updateStatus(id, status) {
-    await supabase.from('complaints').update({ status }).eq('id', id)
-    setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c))
+    try {
+      const { error: updateError } = await supabase
+        .from('complaints')
+        .update({ status })
+        .eq('id', id)
+      if (updateError) throw updateError
+      setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c))
+    } catch (err) {
+      console.error("Dashboard failed to update status:", err)
+      alert("Failed to update status. Please try again.")
+    }
   }
 
   function timeAgo(dateStr) {
@@ -186,7 +215,15 @@ export default function Dashboard() {
       </div>
 
       <div style={{ padding: '0 1.5rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {loading ? (
+        {error ? (
+          <div style={{
+            background: '#fef2f2', border: '1px solid #fca5a5',
+            borderRadius: 12, padding: '1rem', color: '#dc2626',
+            textAlign: 'center', fontSize: 14, fontWeight: 600
+          }}>
+            ⚠️ {error}
+          </div>
+        ) : loading ? (
           <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>Loading...</p>
         ) : filtered.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>No complaints found.</p>
@@ -209,21 +246,63 @@ export default function Dashboard() {
                   )}
                   <div style={{ padding: '0.875rem 1rem', flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 16 }}>{CATEGORY_EMOJI[c.category]}</span>
+                      <span style={{ fontSize: 16 }}>{CATEGORY_EMOJI[c.category] || '📌'}</span>
                       <span style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{c.category}</span>
-                      <span style={{
-                        fontSize: 11, padding: '2px 8px', borderRadius: 99, fontWeight: 600,
-                        background: `${SEVERITY_COLOR[c.severity]}15`,
-                        color: SEVERITY_COLOR[c.severity],
-                        border: `1px solid ${SEVERITY_COLOR[c.severity]}30`
-                      }}>{c.severity}</span>
+                      
+                      {/* urgent badge in red if urgent is true */}
+                      {(c.urgent === true || c.urgent === 'true') && (
+                        <span style={{
+                          fontSize: 10, padding: '2px 8px', borderRadius: 99, fontWeight: 800,
+                          background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5'
+                        }}>
+                          🚨 URGENT
+                        </span>
+                      )}
+
                       <span style={{
                         fontSize: 11, padding: '2px 8px', borderRadius: 99, fontWeight: 600,
                         background: `${STATUS_COLOR[c.status]}15`,
                         color: STATUS_COLOR[c.status],
                         border: `1px solid ${STATUS_COLOR[c.status]}30`
                       }}>{c.status}</span>
+
+                      {/* confidence score as a small tag */}
+                      {c.confidence !== undefined && c.confidence !== null && c.confidence > 0 && (
+                        <span style={{
+                          fontSize: 10, padding: '2px 8px', borderRadius: 99, fontWeight: 600,
+                          background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0'
+                        }}>
+                          🤖 {c.confidence}% Match
+                        </span>
+                      )}
+
+                      {/* department tag */}
+                      {c.department && (
+                        <span style={{
+                          fontSize: 10, padding: '2px 8px', borderRadius: 99, fontWeight: 600,
+                          background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe'
+                        }}>
+                          🏢 {c.department}
+                        </span>
+                      )}
+
+                      {/* estimated repair cost */}
+                      {c.estimated_repair && (
+                        <span style={{
+                          fontSize: 10, padding: '2px 8px', borderRadius: 99, fontWeight: 600,
+                          background: '#f8fafc', color: '#4b5563', border: '1px solid #e2e8f0'
+                        }}>
+                          🛠️ {c.estimated_repair}
+                        </span>
+                      )}
                     </div>
+
+                    {c.title && (
+                      <h3 style={{ fontSize: 14, fontWeight: 800, color: '#111827', margin: '4px 0 6px 0' }}>
+                        {c.title}
+                      </h3>
+                    )}
+
                     <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>
                       📍 {c.ward} · {timeAgo(c.created_at)} · 👍 {c.upvotes}
                     </p>
