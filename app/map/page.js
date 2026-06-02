@@ -31,6 +31,24 @@ export default function MapPage() {
     resolved: t.resolved,
   };
 
+  const fetchComplaints = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("complaints")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (fetchError) throw fetchError;
+      setComplaints(data || []);
+    } catch (err) {
+      console.error("Failed to fetch complaints for map:", err);
+      setError("Could not fetch live complaints. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // 1. Fetch complaints on mount
   useEffect(() => {
     fetchComplaints();
@@ -61,24 +79,6 @@ export default function MapPage() {
       document.head.appendChild(script);
     } else {
       setLeafletLoaded(true);
-    }
-  }, []);
-
-  const fetchComplaints = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from("complaints")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (fetchError) throw fetchError;
-      setComplaints(data || []);
-    } catch (err) {
-      console.error("Failed to fetch complaints for map:", err);
-      setError("Could not fetch live complaints. Please check your connection.");
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -138,13 +138,29 @@ export default function MapPage() {
 
     // Clear existing map instance
     if (window._map) {
-      window._map.remove();
+      try {
+        window._map.remove();
+      } catch (e) {
+        console.warn("Failed to remove previous map instance:", e);
+      }
       window._map = null;
     }
 
+    // Reset container ID to prevent "Map container is already initialized" error
+    const container = document.getElementById("leaflet-map");
+    if (container) {
+      container._leaflet_id = null;
+    }
+
     // Initialize map centered on Hyderabad at [17.3850, 78.4867] with zoom level 12
-    const map = L.map("leaflet-map").setView([17.385, 78.4867], 12);
-    window._map = map;
+    let map;
+    try {
+      map = L.map("leaflet-map").setView([17.385, 78.4867], 12);
+      window._map = map;
+    } catch (e) {
+      console.error("Failed to initialize map:", e);
+      return;
+    }
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
@@ -152,6 +168,13 @@ export default function MapPage() {
 
     // Render custom status-colored emoji markers
     filtered.forEach((complaint) => {
+      const lat = parseFloat(complaint.latitude);
+      const lng = parseFloat(complaint.longitude);
+      if (isNaN(lat) || isNaN(lng)) {
+        console.warn("Skipping marker placement for invalid coordinates:", complaint);
+        return;
+      }
+
       const color = STATUS_COLOR[complaint.status] || "#dc2626";
       const icon = L.divIcon({
         className: "",
@@ -165,14 +188,18 @@ export default function MapPage() {
         iconAnchor: [18, 18],
       });
 
-      const marker = L.marker([complaint.latitude, complaint.longitude], { icon });
+      const marker = L.marker([lat, lng], { icon });
       marker.on("click", () => setSelected(complaint));
       marker.addTo(map);
     });
 
     return () => {
       if (window._map) {
-        window._map.remove();
+        try {
+          window._map.remove();
+        } catch (e) {
+          console.warn("Clean-up: failed to remove map:", e);
+        }
         window._map = null;
       }
     };
