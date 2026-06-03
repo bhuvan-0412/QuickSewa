@@ -12,7 +12,7 @@
     "test:cov": "jest --coverage && echo 'codecov'",
     "knip": "knip",
     "predeploy": "next build",
-    "deploy": "gh-pages -d out -r github"
+    "deploy": "gh-pages -d out --remote github"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
