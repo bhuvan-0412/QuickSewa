@@ -2,6 +2,7 @@
   "name": "quicksewa",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://bhuvan-0412.github.io/QuickSewa/",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +10,9 @@
     "lint": "next lint && biome check .",
     "test": "jest --coverage",
     "test:cov": "jest --coverage && echo 'codecov'",
-    "knip": "knip"
+    "knip": "knip",
+    "predeploy": "next build",
+    "deploy": "gh-pages -d out -r github"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
@@ -21,6 +24,7 @@
     "@biomejs/biome": "^2.4.16",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
+    "gh-pages": "^6.3.0",
     "jest": "^30.4.2",
     "knip": "^6.14.2"
   }

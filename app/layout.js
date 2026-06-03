@@ -32,6 +32,32 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable} ${notoTelugu.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(l) {
+                if (l.search[1] === 'p') {
+                  var decoded = l.search.slice(1).split('&').map(function(s) {
+                    return s.replace(/~and~/g, '&')
+                  }).reduce(function(r, q) {
+                    var nameVal = q.split('=');
+                    r[nameVal[0]] = nameVal[1];
+                    return r;
+                  }, {});
+                  if (decoded.p !== undefined) {
+                    window.history.replaceState(null, null,
+                      l.pathname.slice(0, -1) + (decoded.p ? '/' + decoded.p : '') +
+                      (decoded.q ? '?' + decoded.q : '') +
+                      l.hash
+                    );
+                  }
+                }
+              }(window.location));
+            `
+          }}
+        />
+      </head>
       <body>
         <LanguageProvider>{children}</LanguageProvider>
       </body>
