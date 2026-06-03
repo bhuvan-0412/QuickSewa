@@ -7,9 +7,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: "export",
   ...(isProd
     ? {
+        output: "export",
         basePath: "/QuickSewa",
         assetPrefix: "/QuickSewa",
       }
