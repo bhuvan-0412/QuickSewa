@@ -29,6 +29,14 @@
     "lineWidth": 100
   },
   "files": {
-    "includes": ["**", "!**/.next", "!**/node_modules", "!**/build", "!**/dist", "!**/coverage"]
+    "includes": [
+      "**",
+      "!**/.next",
+      "!**/node_modules",
+      "!**/build",
+      "!**/dist",
+      "!**/coverage",
+      "!**/out"
+    ]
   }
 }

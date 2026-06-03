@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Pre-commit hook to run linting and tests before allowing a commit
+
+echo "==============================================="
+echo "Running pre-commit verification..."
+echo "==============================================="
+
+# Run linter
+npm run lint
+LINT_EXIT=$?
+if [ $LINT_EXIT -ne 0 ]; then
+  echo "❌ Linting failed! Please fix the errors before committing."
+  exit 1
+fi
+
+# Run tests
+npm run test
+TEST_EXIT=$?
+if [ $TEST_EXIT -ne 0 ]; then
+  echo "❌ Tests failed! Please fix the tests before committing."
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed successfully!"
+exit 0

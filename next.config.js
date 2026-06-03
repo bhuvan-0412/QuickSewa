@@ -5,9 +5,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'export',
-  basePath: '/QuickSewa',
-  assetPrefix: '/QuickSewa',
+  output: "export",
+  basePath: "/QuickSewa",
+  assetPrefix: "/QuickSewa",
   trailingSlash: true,
 };
 
