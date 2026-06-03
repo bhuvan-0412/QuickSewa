@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import LangToggle from "../components/LangToggle";
 import { useLang } from "../lib/language";
 import { supabase } from "../lib/supabase";
@@ -112,7 +112,9 @@ export default function MapPage() {
 
   // Categories to show in the filter toolbar: All, Pothole, Garbage, Streetlight, Waterlogging
   const categories = ["All", "Pothole", "Garbage", "Streetlight", "Waterlogging"];
-  const filtered = filter === "All" ? complaints : complaints.filter((c) => c.category === filter);
+  const filtered = useMemo(() => {
+    return filter === "All" ? complaints : complaints.filter((c) => c.category === filter);
+  }, [complaints, filter]);
 
   function timeAgo(dateStr) {
     if (!dateStr) return "";
@@ -170,7 +172,7 @@ export default function MapPage() {
     filtered.forEach((complaint) => {
       const lat = parseFloat(complaint.latitude);
       const lng = parseFloat(complaint.longitude);
-      if (isNaN(lat) || isNaN(lng)) {
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
         console.warn("Skipping marker placement for invalid coordinates:", complaint);
         return;
       }
@@ -203,7 +205,7 @@ export default function MapPage() {
         window._map = null;
       }
     };
-  }, [leafletLoaded, complaints, filter]);
+  }, [leafletLoaded, filtered]);
 
   return (
     <main

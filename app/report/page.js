@@ -437,7 +437,7 @@ export default function Report() {
       const extension = fileToUpload.name.split(".").pop() || "jpg";
       const fileName = `complaint_${Date.now()}.${extension}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("complaint-photos")
         .upload(fileName, fileToUpload);
 
