@@ -789,6 +789,7 @@ export default function ComplaintReport() {
               >
                 {t.photoEvidence}
               </h3>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={complaint.photo_url}
                 alt="Civic Issue Evidence"

@@ -426,6 +426,7 @@ export default function Dashboard() {
               >
                 <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 0 }}>
                   {c.photo_url && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={c.photo_url}
                       alt=""

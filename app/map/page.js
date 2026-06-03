@@ -500,6 +500,7 @@ export default function MapPage() {
 
             {/* Photo Proof */}
             {selected.photo_url && (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={selected.photo_url}
                 alt="Complaint details"

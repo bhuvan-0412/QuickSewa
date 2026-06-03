@@ -334,6 +334,7 @@ export default function Report() {
 
   // Leaflet lazy loading for Hyderabad coordinates picker
   useEffect(() => {
+    if (typeof window === "undefined") return;
     if (locationMode !== "map") return;
     let isMounted = true;
 
@@ -1011,6 +1012,7 @@ export default function Report() {
                   overflow: "hidden",
                 }}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo}
                   alt="complaint proof"
