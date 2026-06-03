@@ -2,6 +2,7 @@
   "name": "quicksewa",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "homepage": "https://bhuvan-0412.github.io/QuickSewa/",
   "scripts": {
     "dev": "next dev",
