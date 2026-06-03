@@ -1,3 +1,5 @@
+const isProd = process.env.NODE_ENV === "production";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -6,8 +8,12 @@ const nextConfig = {
     unoptimized: true,
   },
   output: "export",
-  basePath: "/QuickSewa",
-  assetPrefix: "/QuickSewa",
+  ...(isProd
+    ? {
+        basePath: "/QuickSewa",
+        assetPrefix: "/QuickSewa",
+      }
+    : {}),
   trailingSlash: true,
 };
 
