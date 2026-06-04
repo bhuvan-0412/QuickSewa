@@ -1,11 +1,66 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-case-conflict
+      - id: mixed-line-ending
+
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.18.2
     hooks:
       - id: gitleaks
 
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
   - repo: https://github.com/biomejs/pre-commit
     rev: v0.4.0
     hooks:
       - id: biome-check
-        additional_dependencies: ["@biomejs/biome@1.8.3"]
+        additional_dependencies: ["@biomejs/biome@2.4.16"]
+
+  - repo: local
+    hooks:
+      - id: next-lint
+        name: Next.js Linter (ESLint)
+        entry: npx next lint
+        language: system
+        pass_filenames: false
+        files: \.(js|jsx|ts|tsx)$
+
+      - id: knip
+        name: Knip Dead Code Scanner
+        entry: npm run knip
+        language: system
+        pass_filenames: false
+        files: \.(js|jsx|ts|tsx|json)$
+
+      - id: jest-tests
+        name: Jest Unit Tests
+        entry: npm run test
+        language: system
+        pass_filenames: false
+        files: \.(js|jsx|ts|tsx)$
+
+      - id: npm-audit
+        name: npm audit (Dependency Security)
+        entry: npm audit --audit-level=high
+        language: system
+        pass_filenames: false
+        files: ^package(-lock)?\.json$
+
+
