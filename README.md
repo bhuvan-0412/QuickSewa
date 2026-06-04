@@ -273,21 +273,32 @@ QuickSewa reflects our mission of making civic participation fast, accessible, a
 
 ## Contributors
 
-We would like to acknowledge the contributions of the following team members:
-
+### 1. Frontend & UI/UX Development
 * **Bhuvan Thota** (@bhuvanthota / @bhuvan-0412)
   * Overhauled the UI/UX with modern Poppins typography, drag-and-drop cards, custom chip selectors, and animated success overlays.
   * Implemented the central `LanguageProvider` and localizations for Telugu language support across all interfaces.
   * Created the home page dashboard with animated statistical cards.
-  * Integrated Google Gemini 1.5 Flash Vision API for automatic AI issue classification from uploaded photos.
-  * Developed the dual-mode location picker, printable grievance report sheets, and dashboard complaint sorting.
-  * Configured SPA routing and deployments to GitHub Pages.
-  * Set up local development/pre-commit verification hooks (Husky, lint-staged, eslint, biome, knip, jest).
+  * Developed printable grievance report sheets.
 * **Vishal Borra** (@VishalBorra)
-  * Set up the initial git repository, directory structure, and foundational files.
   * Drafted initial project documentation and `README.md` outlines.
+
+### 2. Backend, Database & AI Integration
+* **Bhuvan Thota** (@bhuvanthota / @bhuvan-0412)
+  * Integrated Google Gemini 1.5 Flash Vision API for automatic AI issue classification from uploaded photos.
+  * Developed the dual-mode location picker and integrated browser geolocation API.
+  * Configured backend interactions for complaint submitting, map updates, upvoting, and dashboard sorting.
+* **Vishal Borra** (@VishalBorra)
+  * Configured initial directory structure, database tables, and environment templates.
+
+### 3. DevOps, Tooling & Compliance
+* **Bhuvan Thota** (@bhuvanthota / @bhuvan-0412)
+  * Set up SPA routing, base URL configurations, and deployments to GitHub Pages.
+  * Created local development verification hooks (Husky, lint-staged, eslint, biome, knip, jest).
+  * Resolved GitLab CI compliance check issues, formatting/linter errors, and dependency issues.
+* **Vishal Borra** (@VishalBorra)
   * Managed team branches, code review integrations, and merged key feature code.
 * **Ram Tejesh Pentela** (@RamTejeshPentela)
-  * Integrated and merged critical feature codes between repository branches (`feat/intial_code` into `main`).
+  * Merged critical features and managed branch integration.
+
 
 
