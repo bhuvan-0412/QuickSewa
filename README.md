@@ -279,20 +279,30 @@ QuickSewa reflects our mission of making civic participation fast, accessible, a
   * Implemented the central `LanguageProvider` and localizations for Telugu language support across all interfaces.
   * Created the home page dashboard with animated statistical cards.
   * Developed printable grievance report sheets.
+* **Vishal Borra** (@VishalBorra)
+  * Structured the project layout and customized base styles for mobile and desktop screens.
+  * Drafted initial project documentation and UI wireframes.
+* **Ram Tejesh Pentela** (@RamTejeshPentela)
+  * Refactored component navigation routing and improved rendering of the complaint details view.
 
 ### 2. Backend, Database & AI Integration
+* **Bhuvan Thota** (@bhuvanthota / @bhuvan-0412)
+  * Developed the vision analysis query flow for Google Gemini 1.5 Flash API to categorize issues from images.
+  * Optimized image file compression before upload to speed up response time.
 * **Vishal Borra** (@VishalBorra)
-  * Integrated Google Gemini 1.5 Flash Vision API for automatic AI issue classification from uploaded photos.
-  * Developed the dual-mode location picker and integrated browser geolocation API.
-  * Configured backend interactions for complaint submitting, map updates, upvoting, and dashboard sorting.
-  * Configured initial directory structure, database tables, and environment templates.
+  * Configured Supabase integration, created PostgreSQL schemas, and developed SQL table migration scripts.
+  * Managed geolocation tracking coordinates and integrated the dual-mode location picker.
+* **Ram Tejesh Pentela** (@RamTejeshPentela)
+  * Handled API routes for status updates, upvoting metrics, and sorting queries.
 
 ### 3. DevOps, Tooling & Compliance
+* **Bhuvan Thota** (@bhuvanthota / @bhuvan-0412)
+  * Created Git hooks using Husky and lint-staged for ESLint and Biome formatting.
+* **Vishal Borra** (@VishalBorra)
+  * Managed repository branching strategy, pull requests, and branch merges.
 * **Ram Tejesh Pentela** (@RamTejeshPentela)
-  * Set up SPA routing, base URL configurations, and deployments to GitHub Pages.
-  * Created local development verification hooks (Husky, lint-staged, eslint, biome, knip, jest).
-  * Resolved GitLab CI compliance check issues, formatting/linter errors, and dependency issues.
-  * Managed team branches, code review integrations, and merged key feature code.
+  * Configured GitLab CI pipelines, GitHub Pages deployments, and resolved compliance checks.
+
 
 
 
