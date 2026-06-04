@@ -1,5 +1,3 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
 
 # Pre-push hook to confirm before pushing to Swecha
 remote="$1"
