@@ -1,7 +1,7 @@
 
 # QuickSewa – One-Tap Civic Grievance Reporter
 
-## Overview
+## About Project
 
 QuickSewa is a multilingual CivicTech platform designed to make reporting civic issues simple, fast, and accessible for every citizen, regardless of their language proficiency, literacy level, or technical expertise.
 
@@ -271,9 +271,23 @@ QuickSewa reflects our mission of making civic participation fast, accessible, a
 
 ---
 
-## Team
+## Contributors
 
-Developed as part of a CivicTech Hackathon focused on solving real-world urban governance challenges through technology and citizen engagement.
+We would like to acknowledge the contributions of the following team members:
 
-A brief description of what this project does and who it's for
+* **Bhuvan Thota** (@bhuvanthota / @bhuvan-0412)
+  * Overhauled the UI/UX with modern Poppins typography, drag-and-drop cards, custom chip selectors, and animated success overlays.
+  * Implemented the central `LanguageProvider` and localizations for Telugu language support across all interfaces.
+  * Created the home page dashboard with animated statistical cards.
+  * Integrated Google Gemini 1.5 Flash Vision API for automatic AI issue classification from uploaded photos.
+  * Developed the dual-mode location picker, printable grievance report sheets, and dashboard complaint sorting.
+  * Configured SPA routing and deployments to GitHub Pages.
+  * Set up local development/pre-commit verification hooks (Husky, lint-staged, eslint, biome, knip, jest).
+* **Vishal Borra** (@VishalBorra)
+  * Set up the initial git repository, directory structure, and foundational files.
+  * Drafted initial project documentation and `README.md` outlines.
+  * Managed team branches, code review integrations, and merged key feature code.
+* **Ram Tejesh Pentela** (@RamTejeshPentela)
+  * Integrated and merged critical feature codes between repository branches (`feat/intial_code` into `main`).
+
 
