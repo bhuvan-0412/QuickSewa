@@ -1,0 +1,30 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "==============================================="
+echo "Running JavaScript Pre-commit Hooks..."
+echo "==============================================="
+
+# 1. Run lint-staged (Biome and Next Lint on staged files)
+npx lint-staged
+if [ $? -ne 0 ]; then
+  echo "❌ Linting or formatting failed! Please fix errors before committing."
+  exit 1
+fi
+
+# 2. Run Knip (dead code check)
+npm run knip
+if [ $? -ne 0 ]; then
+  echo "❌ Dead code check failed! Please fix before committing."
+  exit 1
+fi
+
+# 3. Run Jest Tests
+npm run test
+if [ $? -ne 0 ]; then
+  echo "❌ Unit tests failed! Please fix tests before committing."
+  exit 1
+fi
+
+echo "✅ All JavaScript checks passed successfully!"
+exit 0
