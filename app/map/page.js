@@ -219,10 +219,10 @@ export default function MapPage() {
     >
       {/* Map Header */}
       <div
+        className="glass-panel"
         style={{
-          padding: "1rem 1.25rem",
-          background: "white",
-          borderBottom: "1px solid #e5e7eb",
+          padding: "1rem 1.5rem",
+          borderBottom: "1px solid rgba(22, 163, 74, 0.15)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -236,31 +236,25 @@ export default function MapPage() {
             href="/"
             style={{
               fontSize: 20,
-              color: "#374151",
+              color: "var(--text-main)",
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
-              minHeight: "48px",
+              minHeight: "44px",
               padding: "0 8px",
             }}
           >
             ←
           </Link>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#14532d", margin: 0 }}>
+          <h1
+            className="gradient-title"
+            style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}
+          >
             {t.mapTitle}
           </h1>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              background: "#f0fdf4",
-              padding: "6px 14px",
-              borderRadius: 99,
-              fontSize: 13,
-              color: "#15803d",
-              fontWeight: 600,
-            }}
-          >
+          <div className="badge-premium">
             {filtered.length} {t.issues}
           </div>
           <LangToggle />
@@ -269,13 +263,13 @@ export default function MapPage() {
 
       {/* Filter toolbar */}
       <div
+        className="filter-toolbar"
         style={{
-          padding: "0.75rem 1rem",
-          background: "white",
-          borderBottom: "1px solid #f3f4f6",
-          display: "flex",
-          gap: 8,
-          overflowX: "auto",
+          padding: "0.75rem 1.5rem",
+          background: "rgba(255, 255, 255, 0.55)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
           zIndex: 100,
         }}
       >
@@ -283,24 +277,17 @@ export default function MapPage() {
           <button
             key={cat}
             onClick={() => setFilter(cat)}
+            className={`filter-btn ${filter === cat ? "active" : ""}`}
             style={{
-              padding: "0.5rem 1.1rem",
-              borderRadius: 99,
-              fontSize: 13,
-              fontWeight: 600,
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-              border: filter === cat ? "2px solid #16a34a" : "1px solid #e5e7eb",
-              background: filter === cat ? "#f0fdf4" : "white",
-              color: filter === cat ? "#15803d" : "#6b7280",
-              minHeight: "48px",
+              minHeight: "38px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: 4,
+              gap: 6,
             }}
           >
-            {CATEGORY_EMOJI[cat] || ""} {cat === "All" ? t.filterAll : t.categories[cat] || cat}
+            <span>{CATEGORY_EMOJI[cat] || ""}</span>
+            <span>{cat === "All" ? t.filterAll : t.categories[cat] || cat}</span>
           </button>
         ))}
       </div>
@@ -380,19 +367,19 @@ export default function MapPage() {
 
         {/* Visual Legend (Bottom Left) */}
         <div
+          className="glass-panel"
           style={{
             position: "absolute",
-            bottom: 16,
-            left: 16,
-            background: "white",
+            bottom: 20,
+            left: 20,
             borderRadius: 12,
-            padding: "0.6rem 1rem",
-            border: "1px solid #e5e7eb",
+            padding: "0.6rem 1.25rem",
+            border: "1px solid rgba(22, 163, 74, 0.18)",
             display: "flex",
             gap: 12,
-            zIndex: 1000,
+            zIndex: 990,
             flexWrap: "wrap",
-            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+            boxShadow: "var(--shadow-md)",
           }}
         >
           {Object.entries(STATUS_COLOR).map(([status, color]) => (
@@ -405,7 +392,7 @@ export default function MapPage() {
                   background: color,
                 }}
               />
-              <span style={{ fontSize: 12, color: "#4b5563", fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>
                 {statusLabel[status]}
               </span>
             </div>
@@ -415,17 +402,17 @@ export default function MapPage() {
         {/* Bottom Sheet Card Details */}
         {selected && (
           <div
+            className="glass-panel animated-card"
             style={{
               position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: "white",
-              borderRadius: "24px 24px 0 0",
-              padding: "1.5rem",
+              bottom: 20,
+              left: 20,
+              right: 20,
+              borderRadius: "20px",
+              padding: "1.75rem",
               zIndex: 1000,
-              borderTop: "1px solid #e5e7eb",
-              boxShadow: "0 -10px 25px -5px rgba(0,0,0,0.1)",
+              border: "1px solid rgba(22, 163, 74, 0.22)",
+              boxShadow: "var(--shadow-lg)",
               maxHeight: "55%",
               overflowY: "auto",
             }}
@@ -474,13 +461,13 @@ export default function MapPage() {
               <button
                 onClick={() => setSelected(null)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "rgba(0, 0, 0, 0.05)",
                   border: "none",
                   borderRadius: "50%",
-                  width: 36,
-                  height: 36,
-                  fontSize: 16,
-                  color: "#6b7280",
+                  width: 32,
+                  height: 32,
+                  fontSize: 14,
+                  color: "var(--text-muted)",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -583,20 +570,16 @@ export default function MapPage() {
                 })()}
               </div>
 
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 10 }}>
                 <button
                   onClick={() => upvote(selected.id)}
                   disabled={upvoting}
+                  className="btn-secondary"
                   style={{
-                    background: "#f0fdf4",
-                    color: "#15803d",
-                    padding: "0 1rem",
+                    padding: "0 1.25rem",
                     borderRadius: 12,
                     fontSize: 13,
-                    fontWeight: 700,
-                    border: "1px solid #bbf7d0",
-                    minHeight: "48px",
-                    cursor: "pointer",
+                    minHeight: "44px",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
@@ -606,19 +589,17 @@ export default function MapPage() {
                 </button>
                 <Link
                   href={`/report/${selected.id}`}
+                  className="btn-primary"
                   style={{
-                    background: "#16a34a",
-                    color: "white",
-                    padding: "0 1.25rem",
+                    padding: "0 1.5rem",
                     borderRadius: 12,
                     fontSize: 13,
-                    fontWeight: 700,
-                    minHeight: "48px",
+                    minHeight: "44px",
                     textDecoration: "none",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 4,
+                    gap: 6,
                   }}
                 >
                   📄 {t.viewReport}

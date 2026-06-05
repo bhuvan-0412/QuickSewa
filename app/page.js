@@ -55,17 +55,21 @@ export default function Home() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "2rem 1rem",
-        background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+        padding: "3rem 1.5rem",
         position: "relative",
+        overflow: "hidden",
       }}
     >
-      {/* Top-right interactive language selector pill */}
+      {/* Background Decorative Blur Blobs */}
+      <div className="bg-blob bg-blob-green" />
+      <div className="bg-blob bg-blob-teal" />
+
+      {/* Top-right language selector */}
       <div
         style={{
           position: "absolute",
-          top: 20,
-          right: 20,
+          top: 24,
+          right: 24,
           zIndex: 100,
         }}
       >
@@ -73,65 +77,52 @@ export default function Home() {
       </div>
 
       <div
-        className="animated-card"
+        className="animated-card glass-panel"
         style={{
-          background: "rgba(255, 255, 255, 0.9)",
-          backdropFilter: "blur(10px)",
-          borderRadius: "24px",
-          padding: "2.5rem 2rem",
+          borderRadius: "var(--radius-lg)",
+          padding: "3rem 2.5rem",
           width: "100%",
           maxWidth: "480px",
-          boxShadow: "var(--shadow-md)",
-          border: "1px solid rgba(22, 163, 74, 0.15)",
+          border: "1px solid rgba(22, 163, 74, 0.22)",
           textAlign: "center",
+          boxShadow: "var(--shadow-lg)",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         {/* Soft green GHMC badge */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "rgba(22, 163, 74, 0.1)",
-            color: "#16a34a",
-            fontSize: "12px",
-            fontWeight: 700,
-            padding: "6px 14px",
-            borderRadius: "99px",
-            marginBottom: "1.25rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
+        <div className="badge-premium" style={{ marginBottom: "1.5rem" }}>
           <span>🛡️</span> GHMC HYDERABAD
         </div>
 
+        {/* Brand Icon Badge */}
         <div
           style={{
-            width: 72,
-            height: 72,
+            width: 80,
+            height: 80,
             borderRadius: "50%",
             background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            margin: "0 auto 1.25rem",
-            fontSize: 32,
-            boxShadow: "0 8px 20px rgba(22, 163, 74, 0.3)",
+            margin: "0 auto 1.5rem",
+            fontSize: 36,
+            boxShadow: "0 8px 24px rgba(22, 163, 74, 0.35)",
             color: "white",
+            border: "4px solid rgba(255, 255, 255, 0.8)",
           }}
         >
           📍
         </div>
 
         <h1
+          className="gradient-title"
           style={{
-            fontSize: "36px",
+            fontSize: "42px",
             fontWeight: 800,
-            color: "#14532d",
-            marginBottom: 8,
-            letterSpacing: "-1px",
-            lineHeight: 1.2,
+            marginBottom: 10,
+            letterSpacing: "-1.5px",
+            lineHeight: 1.1,
           }}
         >
           {t.appName}
@@ -140,9 +131,9 @@ export default function Home() {
         <p
           className="telugu-text"
           style={{
-            fontSize: "16px",
+            fontSize: "18px",
             color: "#166534",
-            fontWeight: 600,
+            fontWeight: 700,
             marginBottom: 8,
           }}
         >
@@ -152,9 +143,10 @@ export default function Home() {
         <p
           style={{
             fontSize: "14px",
-            color: "#4b5563",
-            marginBottom: "2rem",
+            color: "var(--text-muted)",
+            marginBottom: "2.5rem",
             lineHeight: 1.6,
+            fontWeight: 500,
           }}
         >
           {t.taglineSub}
@@ -164,18 +156,18 @@ export default function Home() {
         {error ? (
           <div
             style={{
-              background: "#fef2f2",
-              borderRadius: 16,
-              padding: "1rem",
-              marginBottom: "2rem",
-              border: "1px solid #fca5a5",
+              background: "#fff5f5",
+              borderRadius: 18,
+              padding: "1.25rem",
+              marginBottom: "2.5rem",
+              border: "1px solid #fecaca",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
             }}
           >
-            <span style={{ fontSize: 13, color: "#dc2626", fontWeight: 600 }}>
+            <span style={{ fontSize: 13, color: "#dc2626", fontWeight: 700 }}>
               ⚠️ {t.unableToLoad}
             </span>
           </div>
@@ -185,29 +177,31 @@ export default function Home() {
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
               gap: 12,
-              marginBottom: "2rem",
+              marginBottom: "2.5rem",
             }}
           >
+            {/* Stat Item 1 */}
             <div
               className="hover-lift"
               style={{
                 background: "white",
-                borderRadius: "16px",
-                padding: "1rem 0.5rem",
-                border: "1px solid #e2e8f0",
+                borderRadius: "var(--radius-md)",
+                padding: "1.25rem 0.5rem",
+                border: "1px solid #f1f5f9",
                 boxShadow: "var(--shadow-sm)",
                 textAlign: "center",
                 cursor: "default",
               }}
             >
-              <div style={{ fontSize: "20px", marginBottom: "4px" }}>📋</div>
+              <div style={{ fontSize: "22px", marginBottom: "6px" }}>📋</div>
               <div
                 style={{
-                  fontSize: "22px",
+                  fontSize: "24px",
                   fontWeight: 800,
-                  color: "#16a34a",
-                  lineHeight: 1.1,
-                  marginBottom: 4,
+                  color: "var(--primary)",
+                  lineHeight: 1,
+                  marginBottom: 6,
+                  letterSpacing: "-0.5px",
                 }}
               >
                 {count.toLocaleString()}
@@ -215,36 +209,40 @@ export default function Home() {
               <div
                 style={{
                   fontSize: "10px",
-                  color: "#6b7280",
-                  fontWeight: 600,
+                  color: "var(--text-muted)",
+                  fontWeight: 700,
                   lineHeight: 1.3,
                   whiteSpace: "pre-line",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.2px",
                 }}
               >
                 {t.issuesReported}
               </div>
             </div>
 
+            {/* Stat Item 2 */}
             <div
               className="hover-lift"
               style={{
                 background: "white",
-                borderRadius: "16px",
-                padding: "1rem 0.5rem",
-                border: "1px solid #e2e8f0",
+                borderRadius: "var(--radius-md)",
+                padding: "1.25rem 0.5rem",
+                border: "1px solid #f1f5f9",
                 boxShadow: "var(--shadow-sm)",
                 textAlign: "center",
                 cursor: "default",
               }}
             >
-              <div style={{ fontSize: "20px", marginBottom: "4px" }}>✅</div>
+              <div style={{ fontSize: "22px", marginBottom: "6px" }}>✅</div>
               <div
                 style={{
-                  fontSize: "22px",
+                  fontSize: "24px",
                   fontWeight: 800,
-                  color: "#16a34a",
-                  lineHeight: 1.1,
-                  marginBottom: 4,
+                  color: "var(--primary)",
+                  lineHeight: 1,
+                  marginBottom: 6,
+                  letterSpacing: "-0.5px",
                 }}
               >
                 {resolvedCount.toLocaleString()}
@@ -252,36 +250,40 @@ export default function Home() {
               <div
                 style={{
                   fontSize: "10px",
-                  color: "#6b7280",
-                  fontWeight: 600,
+                  color: "var(--text-muted)",
+                  fontWeight: 700,
                   lineHeight: 1.3,
                   whiteSpace: "pre-line",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.2px",
                 }}
               >
                 {t.resolvedWeek}
               </div>
             </div>
 
+            {/* Stat Item 3 */}
             <div
               className="hover-lift"
               style={{
                 background: "white",
-                borderRadius: "16px",
-                padding: "1rem 0.5rem",
-                border: "1px solid #e2e8f0",
+                borderRadius: "var(--radius-md)",
+                padding: "1.25rem 0.5rem",
+                border: "1px solid #f1f5f9",
                 boxShadow: "var(--shadow-sm)",
                 textAlign: "center",
                 cursor: "default",
               }}
             >
-              <div style={{ fontSize: "20px", marginBottom: "4px" }}>🗺️</div>
+              <div style={{ fontSize: "22px", marginBottom: "6px" }}>🗺️</div>
               <div
                 style={{
-                  fontSize: "22px",
+                  fontSize: "24px",
                   fontWeight: 800,
-                  color: "#16a34a",
-                  lineHeight: 1.1,
-                  marginBottom: 4,
+                  color: "var(--primary)",
+                  lineHeight: 1,
+                  marginBottom: 6,
+                  letterSpacing: "-0.5px",
                 }}
               >
                 {wardsCount.toLocaleString()}
@@ -289,10 +291,12 @@ export default function Home() {
               <div
                 style={{
                   fontSize: "10px",
-                  color: "#6b7280",
-                  fontWeight: 600,
+                  color: "var(--text-muted)",
+                  fontWeight: 700,
                   lineHeight: 1.3,
                   whiteSpace: "pre-line",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.2px",
                 }}
               >
                 {t.wardsCovered}
@@ -301,54 +305,30 @@ export default function Home() {
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Link
             href="/report"
+            className="btn-primary"
             style={{
-              background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-              color: "white",
               padding: "1rem 2rem",
-              borderRadius: "14px",
+              borderRadius: "16px",
               fontSize: "16px",
-              fontWeight: 700,
-              boxShadow: "0 4px 14px rgba(22, 163, 74, 0.25)",
+              minHeight: "54px",
               textDecoration: "none",
-              minHeight: "52px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "var(--transition)",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
           >
             {t.reportBtn}
           </Link>
 
           <Link
             href="/map"
+            className="btn-secondary"
             style={{
-              background: "white",
-              color: "#16a34a",
               padding: "1rem 2rem",
-              borderRadius: "14px",
+              borderRadius: "16px",
               fontSize: "15px",
-              fontWeight: 700,
-              border: "2px solid #16a34a",
+              minHeight: "54px",
               textDecoration: "none",
-              minHeight: "52px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "var(--transition)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--primary-light)";
-              e.currentTarget.style.transform = "translateY(-2px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "white";
-              e.currentTarget.style.transform = "none";
             }}
           >
             {t.mapBtn}
@@ -356,28 +336,13 @@ export default function Home() {
 
           <Link
             href="/dashboard"
+            className="btn-flat"
             style={{
-              background: "transparent",
-              color: "#4b5563",
               padding: "0.8rem 2rem",
               borderRadius: "14px",
               fontSize: "13px",
-              fontWeight: 600,
-              border: "1px solid #d1d5db",
-              textDecoration: "none",
               minHeight: "44px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "var(--transition)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f9fafb";
-              e.currentTarget.style.borderColor = "#9ca3af";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.borderColor = "#d1d5db";
+              textDecoration: "none",
             }}
           >
             {t.dashboardBtn}
@@ -387,10 +352,11 @@ export default function Home() {
         <p
           style={{
             fontSize: "11px",
-            color: "#9ca3af",
-            marginTop: "2.5rem",
-            fontWeight: 500,
-            letterSpacing: "0.5px",
+            color: "var(--text-muted)",
+            marginTop: "3rem",
+            fontWeight: 600,
+            letterSpacing: "0.8px",
+            textTransform: "uppercase",
           }}
         >
           {t.footer}

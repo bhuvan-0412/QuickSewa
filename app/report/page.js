@@ -693,9 +693,12 @@ export default function Report() {
           alignItems: "center",
           justifyContent: "center",
           padding: "2rem 1rem",
-          background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        <div className="bg-blob bg-blob-green" />
+        <div className="bg-blob bg-blob-teal" />
         {/* Animated toast inside screen */}
         {toast && (
           <div
@@ -720,30 +723,31 @@ export default function Report() {
         )}
 
         <div
-          className="animated-card"
+          className="animated-card glass-panel"
           style={{
             textAlign: "center",
             maxWidth: 440,
             width: "100%",
-            background: "white",
-            borderRadius: 24,
-            padding: "2.5rem 2rem",
-            boxShadow: "var(--shadow-md)",
-            border: "1px solid var(--primary-border)",
+            borderRadius: "var(--radius-lg)",
+            padding: "3rem 2.5rem",
+            boxShadow: "var(--shadow-lg)",
+            border: "1px solid rgba(22, 163, 74, 0.22)",
+            position: "relative",
+            zIndex: 10,
           }}
         >
           {/* Circular drawing checkmark icon */}
           <div
             style={{
-              width: 80,
-              height: 80,
+              width: 84,
+              height: 84,
               borderRadius: "50%",
-              background: "#f0fdf4",
+              background: "rgba(22, 163, 74, 0.08)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 1.5rem",
-              border: "2px solid #bbf7d0",
+              border: "2px solid var(--primary-border)",
               boxShadow: "0 8px 24px rgba(22, 163, 74, 0.15)",
               animation: "scaleIn 0.5s ease-out",
             }}
@@ -773,7 +777,7 @@ export default function Report() {
             style={{
               fontSize: 28,
               fontWeight: 800,
-              color: "#14532d",
+              color: "var(--text-title)",
               marginBottom: 8,
               letterSpacing: "-0.5px",
             }}
@@ -783,19 +787,19 @@ export default function Report() {
 
           <div
             style={{
-              background: "#f8fafc",
-              borderRadius: 16,
+              background: "white",
+              borderRadius: "var(--radius-md)",
               padding: "1.25rem",
-              border: "1px solid #e2e8f0",
+              border: "1px solid #f1f5f9",
               marginBottom: "2rem",
               textAlign: "center",
-              boxShadow: "inset 0 2px 4px rgba(0,0,0,0.02)",
+              boxShadow: "var(--shadow-sm)",
             }}
           >
             <p
               style={{
                 fontSize: 11,
-                color: "#6b7280",
+                color: "var(--text-muted)",
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "1px",
@@ -818,27 +822,28 @@ export default function Report() {
             </p>
           </div>
 
-          <p style={{ fontSize: 14, color: "#4b5563", marginBottom: "2rem", lineHeight: 1.6 }}>
+          <p
+            style={{
+              fontSize: 14,
+              color: "var(--text-muted)",
+              marginBottom: "2.5rem",
+              lineHeight: 1.6,
+              fontWeight: 500,
+            }}
+          >
             {t.successMsg}
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <button
               onClick={() => router.push(`/report/${fullComplaintId}`)}
+              className="btn-primary"
               style={{
-                background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                color: "white",
                 padding: "0.9rem",
                 borderRadius: 14,
                 fontSize: 15,
-                fontWeight: 700,
                 minHeight: "52px",
-                cursor: "pointer",
-                border: "none",
-                boxShadow: "0 4px 14px rgba(22, 163, 74, 0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                width: "100%",
               }}
             >
               {t.viewReport}
@@ -846,19 +851,13 @@ export default function Report() {
 
             <button
               onClick={() => router.push("/map")}
+              className="btn-secondary"
               style={{
-                background: "white",
-                color: "#16a34a",
                 padding: "0.9rem",
                 borderRadius: 14,
                 fontSize: 15,
-                fontWeight: 700,
-                border: "2px solid #16a34a",
                 minHeight: "52px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                width: "100%",
               }}
             >
               {t.viewMap}
@@ -866,18 +865,13 @@ export default function Report() {
 
             <button
               onClick={() => router.push("/")}
+              className="btn-flat"
               style={{
-                background: "transparent",
-                color: "#6b7280",
                 padding: "0.9rem",
                 borderRadius: 14,
                 fontSize: 14,
-                border: "1px solid #d1d5db",
                 minHeight: "48px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                width: "100%",
               }}
             >
               {t.backHome}
@@ -892,12 +886,14 @@ export default function Report() {
     <main
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%)",
-        padding: "2rem 1rem",
+        padding: "3rem 1.5rem",
         paddingBottom: "5rem",
         position: "relative",
+        overflow: "hidden",
       }}
     >
+      <div className="bg-blob bg-blob-green" />
+      <div className="bg-blob bg-blob-teal" />
       {/* Toast Alert Feedback Banner */}
       {toast && (
         <div
@@ -970,13 +966,14 @@ export default function Report() {
 
         {/* CARD CONTENT */}
         <div
-          className="animated-card"
+          className="animated-card glass-panel"
           style={{
-            background: "white",
-            borderRadius: 24,
-            padding: "2rem 1.5rem",
-            boxShadow: "var(--shadow-md)",
-            border: "1px solid rgba(22, 163, 74, 0.1)",
+            borderRadius: "var(--radius-lg)",
+            padding: "2.5rem 2rem",
+            boxShadow: "var(--shadow-lg)",
+            border: "1px solid rgba(22, 163, 74, 0.22)",
+            position: "relative",
+            zIndex: 10,
           }}
         >
           {/* Photo Selection Area: DRAG AND DROP CARD */}
@@ -986,21 +983,11 @@ export default function Report() {
             onDragLeave={handleDrag}
             onDrop={handleDrop}
             onClick={() => !photo && fileRef.current.click()}
+            className={`scanner-container ${dragActive ? "dragover" : ""} ${aiLoading ? "scanning" : ""}`}
             style={{
-              background: photo ? "transparent" : dragActive ? "#f0fdf4" : "#fafafa",
-              border: photo ? "none" : dragActive ? "2px dashed #16a34a" : "2px dashed #cbd5e1",
-              borderRadius: 20,
               minHeight: photo ? "auto" : 220,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
               cursor: photo ? "default" : "pointer",
               marginBottom: "2rem",
-              overflow: "hidden",
-              position: "relative",
-              transition: "var(--transition)",
-              boxShadow: dragActive ? "0 0 15px rgba(22, 163, 74, 0.1)" : "none",
             }}
           >
             {photo ? (
@@ -1120,9 +1107,11 @@ export default function Report() {
                 {/* Option A Card */}
                 <div
                   onClick={handleGPSSelect}
+                  className="hover-lift"
                   style={{
-                    background: locationMode === "gps" ? "#f0fdf4" : "white",
-                    border: locationMode === "gps" ? "2px solid #16a34a" : "1.5px solid #e2e8f0",
+                    background: locationMode === "gps" ? "var(--primary-light)" : "white",
+                    border:
+                      locationMode === "gps" ? "2px solid var(--primary)" : "1.5px solid #e2e8f0",
                     borderRadius: 16,
                     padding: "1.25rem 1rem",
                     cursor: "pointer",
@@ -1131,16 +1120,27 @@ export default function Report() {
                       locationMode === "gps"
                         ? "0 4px 15px rgba(22,163,74,0.1)"
                         : "var(--shadow-sm)",
-                    transition: "var(--transition)",
                   }}
                 >
                   <span style={{ fontSize: 32, display: "block", marginBottom: 6 }}>📍</span>
                   <span
-                    style={{ fontSize: 14, fontWeight: 700, color: "#14532d", display: "block" }}
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "var(--text-title)",
+                      display: "block",
+                    }}
                   >
                     {t.useMyLocation}
                   </span>
-                  <span style={{ fontSize: 11, color: "#9ca3af", display: "block", marginTop: 4 }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-muted)",
+                      display: "block",
+                      marginTop: 4,
+                    }}
+                  >
                     {t.useMyLocationSub}
                   </span>
                 </div>
@@ -1148,9 +1148,11 @@ export default function Report() {
                 {/* Option B Card */}
                 <div
                   onClick={handleMapSelect}
+                  className="hover-lift"
                   style={{
-                    background: locationMode === "map" ? "#f0fdf4" : "white",
-                    border: locationMode === "map" ? "2px solid #16a34a" : "1.5px solid #e2e8f0",
+                    background: locationMode === "map" ? "var(--primary-light)" : "white",
+                    border:
+                      locationMode === "map" ? "2px solid var(--primary)" : "1.5px solid #e2e8f0",
                     borderRadius: 16,
                     padding: "1.25rem 1rem",
                     cursor: "pointer",
@@ -1159,16 +1161,27 @@ export default function Report() {
                       locationMode === "map"
                         ? "0 4px 15px rgba(22,163,74,0.1)"
                         : "var(--shadow-sm)",
-                    transition: "var(--transition)",
                   }}
                 >
                   <span style={{ fontSize: 32, display: "block", marginBottom: 6 }}>🗺️</span>
                   <span
-                    style={{ fontSize: 14, fontWeight: 700, color: "#14532d", display: "block" }}
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "var(--text-title)",
+                      display: "block",
+                    }}
                   >
                     {t.pickOnMap}
                   </span>
-                  <span style={{ fontSize: 11, color: "#9ca3af", display: "block", marginTop: 4 }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-muted)",
+                      display: "block",
+                      marginTop: 4,
+                    }}
+                  >
                     {t.pickOnMapSub}
                   </span>
                 </div>
@@ -1202,22 +1215,22 @@ export default function Report() {
             <div
               className="ai-pulse-card"
               style={{
-                background: "#f0fdf4",
-                borderRadius: 16,
-                padding: "1.5rem",
+                background: "var(--primary-light)",
+                borderRadius: 18,
+                padding: "2rem",
                 marginBottom: "2rem",
-                border: "2px solid #86efac",
+                border: "2px solid var(--primary-border)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
                 textAlign: "center",
-                gap: 12,
-                boxShadow: "0 4px 15px rgba(22, 163, 74, 0.1)",
+                gap: 14,
+                boxShadow: "var(--shadow-sm)",
               }}
             >
-              <span style={{ fontSize: 38, animation: "scaleIn 1s infinite alternate" }}>🤖</span>
-              <p style={{ fontSize: 15, fontWeight: 700, color: "#14532d", margin: 0 }}>
+              <span style={{ fontSize: 42, animation: "scaleIn 0.8s infinite alternate" }}>🤖</span>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-title)", margin: 0 }}>
                 {t.aiScanning}
               </p>
               <div
@@ -1235,7 +1248,7 @@ export default function Report() {
                     position: "absolute",
                     width: "50%",
                     height: "100%",
-                    background: "#16a34a",
+                    background: "var(--primary)",
                     borderRadius: 99,
                     animation: "loading-slide 1.5s infinite ease-in-out",
                   }}
@@ -1312,7 +1325,14 @@ export default function Report() {
               </div>
 
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
+                <p
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "var(--text-main)",
+                    marginBottom: 8,
+                  }}
+                >
                   {t.titleLabel} {t.descriptionOptional}
                 </p>
                 <input
@@ -1321,14 +1341,11 @@ export default function Report() {
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={60}
                   placeholder={t.titlePlaceholder}
+                  className="input-aesthetic"
                   style={{
                     width: "100%",
                     padding: "0.85rem 1rem",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 12,
                     fontSize: 14,
-                    color: "#374151",
-                    background: "white",
                     minHeight: "48px",
                     boxSizing: "border-box",
                   }}
@@ -1336,7 +1353,14 @@ export default function Report() {
               </div>
 
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
+                <p
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "var(--text-main)",
+                    marginBottom: 8,
+                  }}
+                >
                   {t.descriptionLabel} {t.descriptionOptional}
                 </p>
                 <textarea
@@ -1345,14 +1369,11 @@ export default function Report() {
                   maxLength={140}
                   rows={3}
                   placeholder={t.descriptionPlaceholder}
+                  className="input-aesthetic"
                   style={{
                     width: "100%",
                     padding: "0.85rem 1rem",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 12,
                     fontSize: 14,
-                    color: "#374151",
-                    background: "white",
                     resize: "none",
                     lineHeight: 1.5,
                     boxSizing: "border-box",
@@ -1361,7 +1382,7 @@ export default function Report() {
                 <p
                   style={{
                     fontSize: 11,
-                    color: "#9ca3af",
+                    color: "var(--text-muted)",
                     textAlign: "right",
                     marginTop: 4,
                     margin: 0,
@@ -1374,18 +1395,13 @@ export default function Report() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !category || !location}
+                className="btn-primary"
                 style={{
-                  background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                  color: "white",
                   padding: "1rem",
                   borderRadius: 14,
                   fontSize: 16,
-                  fontWeight: 700,
                   width: "100%",
                   minHeight: "52px",
-                  cursor: "pointer",
-                  border: "none",
-                  boxShadow: "0 4px 14px rgba(22, 163, 74, 0.2)",
                 }}
               >
                 {submitting ? t.submitting : t.submitBtn}
@@ -1549,7 +1565,14 @@ export default function Report() {
 
               {/* Title parameter */}
               <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "var(--text-main)",
+                    marginBottom: 6,
+                  }}
+                >
                   {t.titleLabel}
                 </p>
                 <input
@@ -1558,14 +1581,11 @@ export default function Report() {
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={60}
                   placeholder={t.titleLabel}
+                  className="input-aesthetic"
                   style={{
                     width: "100%",
                     padding: "0.8rem 1rem",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 12,
                     fontSize: 14,
-                    color: "#374151",
-                    background: "white",
                     minHeight: "48px",
                     boxSizing: "border-box",
                   }}
@@ -1574,7 +1594,14 @@ export default function Report() {
 
               {/* Description parameter */}
               <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "var(--text-main)",
+                    marginBottom: 6,
+                  }}
+                >
                   {t.descLabel}
                 </p>
                 <textarea
@@ -1583,14 +1610,11 @@ export default function Report() {
                   maxLength={200}
                   rows={3}
                   placeholder={t.descLabel}
+                  className="input-aesthetic"
                   style={{
                     width: "100%",
                     padding: "0.8rem 1rem",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 12,
                     fontSize: 14,
-                    color: "#374151",
-                    background: "white",
                     resize: "none",
                     lineHeight: 1.5,
                     boxSizing: "border-box",
@@ -1682,20 +1706,13 @@ export default function Report() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || !location}
+                  className="btn-primary"
                   style={{
-                    background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                    color: "white",
                     padding: "1rem",
                     borderRadius: 14,
                     fontSize: 16,
-                    fontWeight: 700,
-                    border: "none",
                     minHeight: "52px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 4px 14px rgba(22, 163, 74, 0.25)",
+                    width: "100%",
                   }}
                 >
                   {submitting ? (
@@ -1726,19 +1743,13 @@ export default function Report() {
 
                 <button
                   onClick={() => setShowCategoryOverride(!showCategoryOverride)}
+                  className="btn-secondary"
                   style={{
-                    background: "white",
-                    color: "#4b5563",
                     padding: "0.9rem",
                     borderRadius: 14,
                     fontSize: 14,
-                    fontWeight: 700,
-                    border: "1px solid #d1d5db",
                     minHeight: "48px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    width: "100%",
                   }}
                 >
                   ✏️ {showCategoryOverride ? t.hideOverrideButton : t.aiEditDetails}

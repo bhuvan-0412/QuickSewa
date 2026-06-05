@@ -229,11 +229,14 @@ export default function ReportClient() {
     <main
       style={{
         minHeight: "100vh",
-        background: "#f0fdf4",
-        padding: "2rem 1rem",
+        padding: "3rem 1.5rem",
         paddingBottom: "4rem",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      <div className="bg-blob bg-blob-green" />
+      <div className="bg-blob bg-blob-teal" />
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -265,69 +268,51 @@ export default function ReportClient() {
         className="no-print"
         style={{
           maxWidth: 680,
-          margin: "0 auto 1.25rem",
+          margin: "0 auto 1.5rem",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
           gap: 12,
+          position: "relative",
+          zIndex: 10,
         }}
       >
         <Link
           href="/map"
+          className="btn-secondary"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: "#166534",
-            fontWeight: 600,
+            padding: "8px 18px",
+            borderRadius: 12,
+            minHeight: "46px",
+            fontSize: "14px",
             textDecoration: "none",
-            fontSize: 15,
-            padding: "8px 16px",
-            background: "white",
-            borderRadius: 10,
-            border: "1px solid #bbf7d0",
-            minHeight: "48px",
           }}
         >
           {t.backLiveMap}
         </Link>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button
             onClick={handleShare}
+            className="btn-secondary"
             style={{
-              background: "white",
-              border: "1px solid #bbf7d0",
-              color: "#166534",
-              fontWeight: 600,
-              padding: "8px 16px",
-              borderRadius: 10,
-              cursor: "pointer",
-              fontSize: 14,
-              minHeight: "48px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
+              padding: "8px 18px",
+              borderRadius: 12,
+              minHeight: "46px",
+              fontSize: "14px",
             }}
           >
             🔗 {copied ? t.copiedUrl : t.shareUrl}
           </button>
           <button
             onClick={() => window.print()}
+            className="btn-primary"
             style={{
-              background: "#16a34a",
-              border: "none",
-              color: "white",
-              fontWeight: 700,
-              padding: "8px 16px",
-              borderRadius: 10,
-              cursor: "pointer",
-              fontSize: 14,
-              minHeight: "48px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
+              padding: "8px 18px",
+              borderRadius: 12,
+              minHeight: "46px",
+              fontSize: "14px",
             }}
           >
             🖨️ {t.printDoc}
@@ -338,17 +323,17 @@ export default function ReportClient() {
 
       {/* Main printable sheet */}
       <div
-        className="print-card"
+        className="print-card glass-panel"
         style={{
           maxWidth: 680,
           margin: "0 auto",
-          background: "white",
-          border: "1px solid #bbf7d0",
-          borderRadius: 24,
-          boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)",
-          padding: "2.5rem",
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "var(--shadow-lg)",
+          border: "1px solid rgba(22, 163, 74, 0.22)",
+          padding: "3rem 2.5rem",
           position: "relative",
           overflow: "hidden",
+          zIndex: 10,
         }}
       >
         {/* Decorative Green Top Border */}
@@ -822,20 +807,18 @@ export default function ReportClient() {
             </div>
 
             <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 13, color: "#6b7280" }}>{t.affectingAreaToo}</span>
+              <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>
+                {t.affectingAreaToo}
+              </span>
               <button
                 onClick={handleUpvote}
                 disabled={upvoting}
+                className="btn-secondary"
                 style={{
-                  background: "#f0fdf4",
-                  color: "#15803d",
                   padding: "0.6rem 1.2rem",
                   borderRadius: 12,
                   fontSize: 14,
-                  fontWeight: 700,
-                  border: "1px solid #bbf7d0",
-                  cursor: "pointer",
-                  minHeight: "48px",
+                  minHeight: "44px",
                   display: "flex",
                   alignItems: "center",
                   gap: 6,

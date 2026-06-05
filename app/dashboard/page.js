@@ -115,11 +115,13 @@ export default function Dashboard() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%)",
           padding: "2rem 1rem",
           position: "relative",
+          overflow: "hidden",
         }}
       >
+        <div className="bg-blob bg-blob-green" />
+        <div className="bg-blob bg-blob-teal" />
         <div
           style={{
             position: "absolute",
@@ -132,47 +134,56 @@ export default function Dashboard() {
         </div>
 
         <div
-          className="animated-card"
+          className="animated-card glass-panel"
           style={{
-            background: "white",
-            borderRadius: 24,
-            padding: "2.5rem 2rem",
+            borderRadius: "var(--radius-lg)",
+            padding: "3rem 2.5rem",
             maxWidth: 400,
             width: "100%",
-            border: "1px solid var(--primary-border)",
+            border: "1px solid rgba(22, 163, 74, 0.22)",
             textAlign: "center",
-            boxShadow: "var(--shadow-md)",
+            boxShadow: "var(--shadow-lg)",
+            position: "relative",
+            zIndex: 10,
           }}
         >
           <div
             style={{
-              width: 72,
-              height: 72,
+              width: 80,
+              height: 80,
               borderRadius: "50%",
-              background: "var(--primary-light)",
+              background: "rgba(22, 163, 74, 0.08)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 1.25rem",
-              fontSize: 32,
-              boxShadow: "0 8px 20px rgba(22, 163, 74, 0.1)",
+              margin: "0 auto 1.5rem",
+              fontSize: 36,
+              boxShadow: "0 8px 24px rgba(22, 163, 74, 0.12)",
               color: "var(--primary)",
+              border: "2px solid var(--primary-border)",
             }}
           >
             🏛️
           </div>
           <h1
+            className="gradient-title"
             style={{
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: 800,
-              color: "#14532d",
               marginBottom: 6,
               letterSpacing: "-0.5px",
             }}
           >
             {t.officerLogin}
           </h1>
-          <p style={{ fontSize: 13, color: "#6b7280", marginBottom: "1.75rem", fontWeight: 500 }}>
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--text-muted)",
+              marginBottom: "2rem",
+              fontWeight: 500,
+            }}
+          >
             {t.officerDashboard}
           </p>
           <input
@@ -181,36 +192,36 @@ export default function Dashboard() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && login()}
+            className="input-aesthetic"
             style={{
               width: "100%",
               padding: "0.85rem 1rem",
-              border: "1px solid #cbd5e1",
-              borderRadius: 12,
               fontSize: 15,
               marginBottom: 16,
-              color: "#111827",
-              background: "#f8fafc",
+              boxSizing: "border-box",
             }}
           />
           <button
             onClick={login}
+            className="btn-primary"
             style={{
               width: "100%",
-              background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-              color: "white",
               padding: "0.9rem",
               borderRadius: 14,
               fontSize: 16,
-              fontWeight: 700,
               minHeight: "52px",
-              cursor: "pointer",
-              border: "none",
-              boxShadow: "0 4px 12px rgba(22, 163, 74, 0.2)",
             }}
           >
             {t.loginBtn}
           </button>
-          <p style={{ fontSize: 12, color: "#9ca3af", marginTop: "1.25rem", fontWeight: 600 }}>
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--text-muted)",
+              marginTop: "1.5rem",
+              fontWeight: 600,
+            }}
+          >
             {t.demoPassword}
           </p>
         </div>
@@ -222,15 +233,18 @@ export default function Dashboard() {
     <main
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%)",
         paddingBottom: "5rem",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      <div className="bg-blob bg-blob-green" />
+      <div className="bg-blob bg-blob-teal" />
       {/* Dashboard Header bar */}
       <div
+        className="glass-panel"
         style={{
-          background: "white",
-          borderBottom: "1px solid #e2e8f0",
+          borderBottom: "1px solid rgba(22, 163, 74, 0.15)",
           padding: "1.25rem 1.5rem",
           display: "flex",
           alignItems: "center",
@@ -238,40 +252,37 @@ export default function Dashboard() {
           flexWrap: "wrap",
           gap: 12,
           boxShadow: "var(--shadow-sm)",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Link
             href="/"
+            className="btn-secondary"
             style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
               borderRadius: 10,
               width: 40,
               height: 40,
               fontSize: 16,
-              color: "#374151",
               textDecoration: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
             }}
           >
             ←
           </Link>
           <div>
             <h1
+              className="gradient-title"
               style={{
                 fontSize: 18,
                 fontWeight: 800,
-                color: "#14532d",
                 margin: 0,
                 letterSpacing: "-0.5px",
               }}
             >
               {t.dashboardTitle}
             </h1>
-            <p style={{ fontSize: 12, color: "#6b7280", margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, fontWeight: 500 }}>
               {t.dashboardSub}
             </p>
           </div>
@@ -279,16 +290,12 @@ export default function Dashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
             onClick={fetchAll}
+            className="btn-secondary"
             style={{
-              background: "#f0fdf4",
-              color: "#15803d",
               padding: "0 1rem",
               borderRadius: 12,
               fontSize: 13,
-              fontWeight: 700,
-              border: "1px solid #bbf7d0",
-              minHeight: "44px",
-              cursor: "pointer",
+              minHeight: "40px",
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
@@ -307,6 +314,8 @@ export default function Dashboard() {
           gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
           gap: 16,
           padding: "2rem 1.5rem 1.25rem",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         {[
@@ -322,7 +331,7 @@ export default function Dashboard() {
               background: "white",
               borderRadius: 20,
               padding: "1.25rem 1rem",
-              border: "1px solid #e2e8f0",
+              border: "1px solid #f1f5f9",
               textAlign: "center",
               boxShadow: "var(--shadow-sm)",
             }}
@@ -332,7 +341,7 @@ export default function Dashboard() {
             <p
               style={{
                 fontSize: 12,
-                color: "#6b7280",
+                color: "var(--text-muted)",
                 marginTop: 4,
                 margin: "4px 0 0 0",
                 fontWeight: 600,
@@ -346,31 +355,22 @@ export default function Dashboard() {
 
       {/* Dashboard filter selector buttons bar */}
       <div
+        className="filter-toolbar"
         style={{
           padding: "0 1.5rem",
           marginBottom: "1.5rem",
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         {["all", "open", "in-progress", "resolved"].map((s) => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
+            className={`filter-btn ${filterStatus === s ? "active" : ""}`}
             style={{
-              padding: "0 1.1rem",
-              borderRadius: 99,
-              fontSize: 13,
-              fontWeight: 700,
-              border: filterStatus === s ? "2px solid #16a34a" : "1px solid #e2e8f0",
-              background: filterStatus === s ? "#f0fdf4" : "white",
-              color: filterStatus === s ? "#15803d" : "#4b5563",
+              minHeight: "36px",
               cursor: "pointer",
-              minHeight: "38px",
-              display: "flex",
-              alignItems: "center",
-              boxShadow: filterStatus === s ? "0 4px 10px rgba(22, 163, 74, 0.1)" : "none",
             }}
           >
             {s === "all"
@@ -385,7 +385,16 @@ export default function Dashboard() {
       </div>
 
       {/* Dashboard grievance report cards list */}
-      <div style={{ padding: "0 1.5rem", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div
+        style={{
+          padding: "0 1.5rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
         {error ? (
           <div
             style={{
@@ -402,11 +411,25 @@ export default function Dashboard() {
             ⚠️ {error}
           </div>
         ) : loading ? (
-          <p style={{ textAlign: "center", color: "#9ca3af", padding: "3rem", fontWeight: 600 }}>
+          <p
+            style={{
+              textAlign: "center",
+              color: "var(--text-muted)",
+              padding: "3rem",
+              fontWeight: 600,
+            }}
+          >
             {t.loading}
           </p>
         ) : filtered.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#9ca3af", padding: "3rem", fontWeight: 600 }}>
+          <p
+            style={{
+              textAlign: "center",
+              color: "var(--text-muted)",
+              padding: "3rem",
+              fontWeight: 600,
+            }}
+          >
             {t.noComplaints}
           </p>
         ) : (
@@ -419,7 +442,7 @@ export default function Dashboard() {
                 style={{
                   background: "white",
                   borderRadius: 20,
-                  border: "1px solid #e2e8f0",
+                  border: "1px solid #f1f5f9",
                   overflow: "hidden",
                   boxShadow: "var(--shadow-sm)",
                 }}
