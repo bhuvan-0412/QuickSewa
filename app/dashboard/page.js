@@ -13,8 +13,52 @@ const CATEGORY_EMOJI = {
   Streetlight: "💡",
   Waterlogging: "💧",
   Encroachment: "🚧",
+  Flooding: "🌊",
+  "Drainage Overflow": "🕳️",
+  "Monsoon Damage": "⛈️",
+  "Other Monsoon/Flood-related issues": "🌧️",
   Other: "📌",
 };
+
+const FLOOD_STATUS_COLOR = {
+  active: "#dc2626",
+  "in-progress": "#0284c7",
+  resolved: "#16a34a",
+  dismissed: "#6b7280",
+};
+
+const FLOOD_SEVERITY_COLOR = {
+  Minor: "#eab308",
+  Moderate: "#f97316",
+  Medium: "#f97316",
+  Severe: "#dc2626",
+};
+
+function formatCoordinates(report) {
+  const coords = report.coordinates;
+  if (!coords) return "";
+  if (report.report_type === "point") {
+    return `📍 Point: ${Number(coords.lat).toFixed(4)}, ${Number(coords.lng).toFixed(4)}`;
+  }
+  if (report.report_type === "segment") {
+    const startLat = coords.start?.lat ?? coords.points?.[0]?.[0] ?? 0;
+    const startLng = coords.start?.lng ?? coords.points?.[0]?.[1] ?? 0;
+    const endLat = coords.end?.lat ?? coords.points?.[coords.points.length - 1]?.[0] ?? 0;
+    const endLng = coords.end?.lng ?? coords.points?.[coords.points.length - 1]?.[1] ?? 0;
+    return `🛣️ Road Segment: Start ${Number(startLat).toFixed(4)}, ${Number(startLng).toFixed(4)} to End ${Number(endLat).toFixed(4)}, ${Number(endLng).toFixed(4)}`;
+  }
+  if (report.report_type === "freehand") {
+    const count = coords.points?.length || 0;
+    return `✏️ Freehand Path: ${count} points`;
+  }
+  if (report.report_type === "zone") {
+    const centerLat = coords.center?.lat ?? 0;
+    const centerLng = coords.center?.lng ?? 0;
+    const radiusM = Math.round((coords.radiusKm || 0.3) * 1000);
+    return `⭕ Zone: Center ${Number(centerLat).toFixed(4)}, ${Number(centerLng).toFixed(4)} (Radius: ${radiusM}m)`;
+  }
+  return "";
+}
 
 export default function Dashboard() {
   const { t } = useLang();
@@ -24,6 +68,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
   const [error, setError] = useState(null);
+
+  // Flood States
+  const [floodReports, setFloodReports] = useState([]);
+  const [floodLoading, setFloodLoading] = useState(true);
+  const [floodCount, setFloodCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("complaints");
 
   const statusLabel = {
     open: t.open,
@@ -62,10 +112,46 @@ export default function Dashboard() {
     }
   }, []);
 
+  const fetchFloodReports = useCallback(async () => {
+    setFloodLoading(true);
+    setError(null);
+    try {
+      const { data, error: fetchError } = await supabase.from("flood_reports").select("*");
+      if (fetchError) throw fetchError;
+
+      const statusPriority = {
+        active: 1,
+        "in-progress": 2,
+        resolved: 3,
+        dismissed: 4,
+      };
+
+      const sorted = (data || []).sort((a, b) => {
+        const pA = statusPriority[a.status] || 1;
+        const pB = statusPriority[b.status] || 1;
+        if (pA !== pB) return pA - pB;
+        return (b.upvotes || 0) - (a.upvotes || 0);
+      });
+
+      setFloodReports(sorted);
+
+      const activeCount = (data || []).filter(
+        (r) => r.status === "active" || r.status === "in-progress",
+      ).length;
+      setFloodCount(activeCount);
+    } catch (err) {
+      console.error("Dashboard failed to fetch flood reports:", err);
+      setError("Failed to load flood reports from the server.");
+    } finally {
+      setFloodLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!authed) return;
     fetchAll();
-  }, [authed, fetchAll]);
+    fetchFloodReports();
+  }, [authed, fetchAll, fetchFloodReports]);
 
   async function updateStatus(id, status) {
     try {
@@ -78,6 +164,82 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Dashboard failed to update status:", err);
       alert("Failed to update status. Please try again.");
+    }
+  }
+
+  async function updateFloodStatus(id, status) {
+    try {
+      const { error: updateError } = await supabase
+        .from("flood_reports")
+        .update({ status })
+        .eq("id", id);
+      if (updateError) throw updateError;
+
+      setFloodReports((prev) => {
+        const updated = prev.map((r) => (r.id === id ? { ...r, status } : r));
+
+        const statusPriority = {
+          active: 1,
+          "in-progress": 2,
+          resolved: 3,
+          dismissed: 4,
+        };
+
+        const sorted = updated.sort((a, b) => {
+          const pA = statusPriority[a.status] || 1;
+          const pB = statusPriority[b.status] || 1;
+          if (pA !== pB) return pA - pB;
+          return (b.upvotes || 0) - (a.upvotes || 0);
+        });
+
+        const activeCount = sorted.filter(
+          (r) => r.status === "active" || r.status === "in-progress",
+        ).length;
+        setFloodCount(activeCount);
+
+        return sorted;
+      });
+    } catch (err) {
+      console.error("Dashboard failed to update flood status:", err);
+      alert("Failed to update flood status. Please try again.");
+    }
+  }
+
+  async function dismissFloodReport(id) {
+    try {
+      const { error: updateError } = await supabase
+        .from("flood_reports")
+        .update({ status: "dismissed" })
+        .eq("id", id);
+      if (updateError) throw updateError;
+
+      setFloodReports((prev) => {
+        const updated = prev.map((r) => (r.id === id ? { ...r, status: "dismissed" } : r));
+
+        const statusPriority = {
+          active: 1,
+          "in-progress": 2,
+          resolved: 3,
+          dismissed: 4,
+        };
+
+        const sorted = updated.sort((a, b) => {
+          const pA = statusPriority[a.status] || 1;
+          const pB = statusPriority[b.status] || 1;
+          if (pA !== pB) return pA - pB;
+          return (b.upvotes || 0) - (a.upvotes || 0);
+        });
+
+        const activeCount = sorted.filter(
+          (r) => r.status === "active" || r.status === "in-progress",
+        ).length;
+        setFloodCount(activeCount);
+
+        return sorted;
+      });
+    } catch (err) {
+      console.error("Dashboard failed to dismiss flood report:", err);
+      alert("Failed to dismiss flood report. Please try again.");
     }
   }
 
@@ -105,6 +267,13 @@ export default function Dashboard() {
     open: complaints.filter((c) => c.status === "open").length,
     inProgress: complaints.filter((c) => c.status === "in-progress").length,
     resolved: complaints.filter((c) => c.status === "resolved").length,
+  };
+
+  const floodStats = {
+    total: floodReports.length,
+    active: floodReports.filter((r) => r.status === "active").length,
+    severe: floodReports.filter((r) => r.severity === "Severe").length,
+    resolved: floodReports.filter((r) => r.status === "resolved").length,
   };
 
   if (!authed) {
@@ -289,7 +458,7 @@ export default function Dashboard() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
-            onClick={fetchAll}
+            onClick={activeTab === "complaints" ? fetchAll : fetchFloodReports}
             className="btn-secondary"
             style={{
               padding: "0 1rem",
@@ -299,12 +468,77 @@ export default function Dashboard() {
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
+              borderColor: activeTab === "flood" ? "#0284c7" : "var(--primary-border)",
+              color: activeTab === "flood" ? "#0284c7" : "var(--primary)",
             }}
           >
-            {t.refresh}
+            {activeTab === "complaints" ? t.refresh : "↻ Refresh Flood Reports"}
           </button>
           <LangToggle />
         </div>
+      </div>
+
+      {/* Tabs Selector Bar */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          padding: "0 1.5rem",
+          marginTop: "1.5rem",
+          marginBottom: "1rem",
+          borderBottom: "1px solid #e5e7eb",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        <button
+          onClick={() => setActiveTab("complaints")}
+          style={{
+            padding: "0.75rem 1.25rem",
+            fontSize: 14,
+            fontWeight: 600,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            borderBottom:
+              activeTab === "complaints" ? "2px solid #16a34a" : "2px solid transparent",
+            color: activeTab === "complaints" ? "#16a34a" : "#4b5563",
+          }}
+        >
+          🏙️ Civic Complaints
+        </button>
+        <button
+          onClick={() => setActiveTab("flood")}
+          style={{
+            padding: "0.75rem 1.25rem",
+            fontSize: 14,
+            fontWeight: 600,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            borderBottom: activeTab === "flood" ? "2px solid #0284c7" : "2px solid transparent",
+            color: activeTab === "flood" ? "#0284c7" : "#4b5563",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          🌧️ Flood Reports
+          {floodCount > 0 && (
+            <span
+              style={{
+                background: "#ef4444",
+                color: "white",
+                fontSize: 10,
+                fontWeight: "bold",
+                padding: "2px 6px",
+                borderRadius: 99,
+              }}
+            >
+              {floodCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Dashboard stats cards grid */}
@@ -313,17 +547,25 @@ export default function Dashboard() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
           gap: 16,
-          padding: "2rem 1.5rem 1.25rem",
+          padding: "1rem 1.5rem 1.25rem",
           position: "relative",
           zIndex: 10,
         }}
       >
-        {[
-          { label: t.total, value: stats.total, color: "#374151", icon: "📊" },
-          { label: t.open, value: stats.open, color: "#dc2626", icon: "🔴" },
-          { label: t.inProgress, value: stats.inProgress, color: "#d97706", icon: "⏳" },
-          { label: t.resolved, value: stats.resolved, color: "#16a34a", icon: "✅" },
-        ].map((s) => (
+        {(activeTab === "complaints"
+          ? [
+              { label: t.total, value: stats.total, color: "#374151", icon: "📊" },
+              { label: t.open, value: stats.open, color: "#dc2626", icon: "🔴" },
+              { label: t.inProgress, value: stats.inProgress, color: "#d97706", icon: "⏳" },
+              { label: t.resolved, value: stats.resolved, color: "#16a34a", icon: "✅" },
+            ]
+          : [
+              { label: "Total Reports", value: floodStats.total, color: "#0369a1", icon: "📊" },
+              { label: "Active", value: floodStats.active, color: "#dc2626", icon: "🔴" },
+              { label: "Severe", value: floodStats.severe, color: "#991b1b", icon: "🚨" },
+              { label: "Resolved", value: floodStats.resolved, color: "#16a34a", icon: "✅" },
+            ]
+        ).map((s) => (
           <div
             key={s.label}
             className="hover-lift"
@@ -354,35 +596,37 @@ export default function Dashboard() {
       </div>
 
       {/* Dashboard filter selector buttons bar */}
-      <div
-        className="filter-toolbar"
-        style={{
-          padding: "0 1.5rem",
-          marginBottom: "1.5rem",
-          position: "relative",
-          zIndex: 10,
-        }}
-      >
-        {["all", "open", "in-progress", "resolved"].map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilterStatus(s)}
-            className={`filter-btn ${filterStatus === s ? "active" : ""}`}
-            style={{
-              minHeight: "36px",
-              cursor: "pointer",
-            }}
-          >
-            {s === "all"
-              ? t.filterAll
-              : s === "open"
-                ? t.open
-                : s === "in-progress"
-                  ? t.inProgress
-                  : t.resolved}
-          </button>
-        ))}
-      </div>
+      {activeTab === "complaints" && (
+        <div
+          className="filter-toolbar"
+          style={{
+            padding: "0 1.5rem",
+            marginBottom: "1.5rem",
+            position: "relative",
+            zIndex: 10,
+          }}
+        >
+          {["all", "open", "in-progress", "resolved"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              className={`filter-btn ${filterStatus === s ? "active" : ""}`}
+              style={{
+                minHeight: "36px",
+                cursor: "pointer",
+              }}
+            >
+              {s === "all"
+                ? t.filterAll
+                : s === "open"
+                  ? t.open
+                  : s === "in-progress"
+                    ? t.inProgress
+                    : t.resolved}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Dashboard grievance report cards list */}
       <div
@@ -395,7 +639,283 @@ export default function Dashboard() {
           zIndex: 10,
         }}
       >
-        {error ? (
+        {activeTab === "complaints" ? (
+          error ? (
+            <div
+              style={{
+                background: "#fef2f2",
+                border: "1px solid #fca5a5",
+                borderRadius: 16,
+                padding: "1.25rem",
+                color: "#dc2626",
+                textAlign: "center",
+                fontSize: 14,
+                fontWeight: 700,
+              }}
+            >
+              ⚠️ {error}
+            </div>
+          ) : loading ? (
+            <p
+              style={{
+                textAlign: "center",
+                color: "var(--text-muted)",
+                padding: "3rem",
+                fontWeight: 600,
+              }}
+            >
+              {t.loading}
+            </p>
+          ) : filtered.length === 0 ? (
+            <p
+              style={{
+                textAlign: "center",
+                color: "var(--text-muted)",
+                padding: "3rem",
+                fontWeight: 600,
+              }}
+            >
+              {t.noComplaints}
+            </p>
+          ) : (
+            filtered.map((c) => {
+              const sla = slaLabel(c.created_at, c.status);
+              return (
+                <div
+                  key={c.id}
+                  className="animated-card hover-lift"
+                  style={{
+                    background: "white",
+                    borderRadius: 20,
+                    border: "1px solid #f1f5f9",
+                    overflow: "hidden",
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 0 }}>
+                    {c.photo_url && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={c.photo_url}
+                        alt=""
+                        style={{ width: 120, height: 120, objectFit: "cover", flexShrink: 0 }}
+                      />
+                    )}
+                    <div style={{ padding: "1.25rem", flex: 1, minWidth: 260 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          marginBottom: 8,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span style={{ fontSize: 18 }}>{CATEGORY_EMOJI[c.category] || "📌"}</span>
+                        <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
+                          {t.categories[c.category] || c.category}
+                        </span>
+
+                        {/* RED URGENT Badges */}
+                        {(c.urgent === true || c.urgent === "true") && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              padding: "3px 10px",
+                              borderRadius: 99,
+                              fontWeight: 800,
+                              background: "#fef2f2",
+                              color: "#dc2626",
+                              border: "1px solid #fca5a5",
+                            }}
+                          >
+                            🚨 URGENT
+                          </span>
+                        )}
+
+                        <span
+                          style={{
+                            fontSize: 11,
+                            padding: "3px 10px",
+                            borderRadius: 99,
+                            fontWeight: 700,
+                            background: `${STATUS_COLOR[c.status]}15`,
+                            color: STATUS_COLOR[c.status],
+                            border: `1px solid ${STATUS_COLOR[c.status]}30`,
+                          }}
+                        >
+                          {statusLabel[c.status]}
+                        </span>
+
+                        {/* confidence score tag */}
+                        {c.confidence !== undefined &&
+                          c.confidence !== null &&
+                          c.confidence > 0 && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                padding: "3px 10px",
+                                borderRadius: 99,
+                                fontWeight: 700,
+                                background: "var(--primary-light)",
+                                color: "var(--primary)",
+                                border: "1px solid var(--primary-border)",
+                              }}
+                            >
+                              🤖 {c.confidence}% Match
+                            </span>
+                          )}
+
+                        {/* department tag */}
+                        {c.department && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              padding: "3px 10px",
+                              borderRadius: 99,
+                              fontWeight: 700,
+                              background: "#eff6ff",
+                              color: "#1d4ed8",
+                              border: "1px solid #bfdbfe",
+                            }}
+                          >
+                            🏢 {c.department}
+                          </span>
+                        )}
+
+                        {/* estimated repair cost */}
+                        {c.estimated_repair && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              padding: "3px 10px",
+                              borderRadius: 99,
+                              fontWeight: 700,
+                              background: "#f8fafc",
+                              color: "#475569",
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            🛠️ {c.estimated_repair}
+                          </span>
+                        )}
+                      </div>
+
+                      {c.title && (
+                        <h3
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: "#111827",
+                            margin: "4px 0 6px 0",
+                            letterSpacing: "-0.3px",
+                          }}
+                        >
+                          {c.title}
+                        </h3>
+                      )}
+
+                      <p
+                        style={{ fontSize: 13, color: "#6b7280", marginBottom: 8, fontWeight: 500 }}
+                      >
+                        📍 {c.ward} · {timeAgo(c.created_at)} · 👍 {c.upvotes}
+                      </p>
+                      {c.description && (
+                        <p
+                          style={{
+                            fontSize: 13,
+                            color: "#374151",
+                            marginBottom: 10,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {c.description}
+                        </p>
+                      )}
+                      {sla && (
+                        <p
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: sla.color,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          ⏱️ {sla.text}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: "1rem 1.25rem",
+                      borderTop: "1px solid #f1f5f9",
+                      background: "#f8fafc",
+                      display: "flex",
+                      gap: 8,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {c.status !== "in-progress" && c.status !== "resolved" && (
+                      <button
+                        onClick={() => updateStatus(c.id, "in-progress")}
+                        style={{
+                          padding: "0.5rem 1.25rem",
+                          borderRadius: 10,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          background: "#fffbeb",
+                          color: "#d97706",
+                          border: "1px solid #fde68a",
+                          minHeight: "40px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {t.markInProgress}
+                      </button>
+                    )}
+                    {c.status !== "resolved" && (
+                      <button
+                        onClick={() => updateStatus(c.id, "resolved")}
+                        style={{
+                          padding: "0.5rem 1.25rem",
+                          borderRadius: 10,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          background: "#f0fdf4",
+                          color: "#16a34a",
+                          border: "1px solid #bbf7d0",
+                          minHeight: "40px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {t.markResolved}
+                      </button>
+                    )}
+                    {c.status === "resolved" && (
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color: "#16a34a",
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        {t.issueResolved}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )
+        ) : /* FLOOD REPORTS VIEW */
+        error ? (
           <div
             style={{
               background: "#fef2f2",
@@ -410,7 +930,7 @@ export default function Dashboard() {
           >
             ⚠️ {error}
           </div>
-        ) : loading ? (
+        ) : floodLoading ? (
           <p
             style={{
               textAlign: "center",
@@ -421,7 +941,7 @@ export default function Dashboard() {
           >
             {t.loading}
           </p>
-        ) : filtered.length === 0 ? (
+        ) : floodReports.length === 0 ? (
           <p
             style={{
               textAlign: "center",
@@ -430,240 +950,398 @@ export default function Dashboard() {
               fontWeight: 600,
             }}
           >
-            {t.noComplaints}
+            No flood reports logged yet.
           </p>
         ) : (
-          filtered.map((c) => {
-            const sla = slaLabel(c.created_at, c.status);
-            return (
-              <div
-                key={c.id}
-                className="animated-card hover-lift"
-                style={{
-                  background: "white",
-                  borderRadius: 20,
-                  border: "1px solid #f1f5f9",
-                  overflow: "hidden",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 0 }}>
-                  {c.photo_url && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={c.photo_url}
-                      alt=""
-                      style={{ width: 120, height: 120, objectFit: "cover", flexShrink: 0 }}
-                    />
-                  )}
-                  <div style={{ padding: "1.25rem", flex: 1, minWidth: 260 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        marginBottom: 8,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <span style={{ fontSize: 18 }}>{CATEGORY_EMOJI[c.category] || "📌"}</span>
-                      <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
-                        {t.categories[c.category] || c.category}
-                      </span>
-
-                      {/* RED URGENT Badges */}
-                      {(c.urgent === true || c.urgent === "true") && (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            padding: "3px 10px",
-                            borderRadius: 99,
-                            fontWeight: 800,
-                            background: "#fef2f2",
-                            color: "#dc2626",
-                            border: "1px solid #fca5a5",
-                          }}
-                        >
-                          🚨 URGENT
-                        </span>
-                      )}
-
-                      <span
+          <>
+            {/* Render Active and In-Progress first */}
+            {floodReports
+              .filter((r) => r.status === "active" || r.status === "in-progress")
+              .map((c) => {
+                const isResolvedOrDismissed = c.status === "resolved" || c.status === "dismissed";
+                const sevColor = FLOOD_SEVERITY_COLOR[c.severity] || FLOOD_SEVERITY_COLOR.Medium;
+                const truncatedDesc = c.description
+                  ? c.description.length > 80
+                    ? `${c.description.slice(0, 80)}...`
+                    : c.description
+                  : "";
+                return (
+                  <div
+                    key={c.id}
+                    className="animated-card hover-lift"
+                    style={{
+                      background: "white",
+                      borderRadius: 20,
+                      border: "1px solid #f1f5f9",
+                      overflow: "hidden",
+                      boxShadow: "var(--shadow-sm)",
+                      opacity: isResolvedOrDismissed ? 0.5 : 1,
+                      pointerEvents: isResolvedOrDismissed ? "none" : "auto",
+                    }}
+                  >
+                    <div style={{ padding: "1.25rem" }}>
+                      <div
                         style={{
-                          fontSize: 11,
-                          padding: "3px 10px",
-                          borderRadius: 99,
-                          fontWeight: 700,
-                          background: `${STATUS_COLOR[c.status]}15`,
-                          color: STATUS_COLOR[c.status],
-                          border: `1px solid ${STATUS_COLOR[c.status]}30`,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          marginBottom: 8,
+                          flexWrap: "wrap",
                         }}
                       >
-                        {statusLabel[c.status]}
-                      </span>
-
-                      {/* confidence score tag */}
-                      {c.confidence !== undefined && c.confidence !== null && c.confidence > 0 && (
+                        <span style={{ fontSize: 18 }}>{c.issue_type.split(" ")[0]}</span>
+                        <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
+                          {c.issue_type}
+                        </span>
                         <span
                           style={{
                             fontSize: 10,
                             padding: "3px 10px",
                             borderRadius: 99,
                             fontWeight: 700,
-                            background: "var(--primary-light)",
-                            color: "var(--primary)",
-                            border: "1px solid var(--primary-border)",
+                            background: `${sevColor}15`,
+                            color: sevColor,
+                            border: `1px solid ${sevColor}30`,
                           }}
                         >
-                          🤖 {c.confidence}% Match
+                          {c.severity || "Medium"}
                         </span>
-                      )}
-
-                      {/* department tag */}
-                      {c.department && (
                         <span
                           style={{
-                            fontSize: 10,
+                            fontSize: 11,
                             padding: "3px 10px",
                             borderRadius: 99,
                             fontWeight: 700,
-                            background: "#eff6ff",
-                            color: "#1d4ed8",
-                            border: "1px solid #bfdbfe",
+                            background: `${FLOOD_STATUS_COLOR[c.status]}15`,
+                            color: FLOOD_STATUS_COLOR[c.status],
+                            border: `1px solid ${FLOOD_STATUS_COLOR[c.status]}30`,
                           }}
                         >
-                          🏢 {c.department}
+                          {c.status}
                         </span>
-                      )}
+                      </div>
 
-                      {/* estimated repair cost */}
-                      {c.estimated_repair && (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            padding: "3px 10px",
-                            borderRadius: 99,
-                            fontWeight: 700,
-                            background: "#f8fafc",
-                            color: "#475569",
-                            border: "1px solid #e2e8f0",
-                          }}
-                        >
-                          🛠️ {c.estimated_repair}
-                        </span>
-                      )}
-                    </div>
-
-                    {c.title && (
-                      <h3
-                        style={{
-                          fontSize: 16,
-                          fontWeight: 800,
-                          color: "#111827",
-                          margin: "4px 0 6px 0",
-                          letterSpacing: "-0.3px",
-                        }}
-                      >
-                        {c.title}
-                      </h3>
-                    )}
-
-                    <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 8, fontWeight: 500 }}>
-                      📍 {c.ward} · {timeAgo(c.created_at)} · 👍 {c.upvotes}
-                    </p>
-                    {c.description && (
                       <p
                         style={{
                           fontSize: 13,
-                          color: "#374151",
-                          marginBottom: 10,
-                          lineHeight: 1.5,
+                          color: "#6b7280",
+                          marginBottom: 8,
+                          fontWeight: 500,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          flexWrap: "wrap",
                         }}
                       >
-                        {c.description}
+                        <span>📍 {c.ward || "Hyderabad"}</span>
+                        <span>·</span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            background: "#eff6ff",
+                            color: "#1d4ed8",
+                            border: "1px solid #bfdbfe",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {c.report_type.toUpperCase()}
+                        </span>
+                        <span>·</span>
+                        <span>{timeAgo(c.created_at)}</span>
+                        <span>·</span>
+                        <span>👍 {c.upvotes || 0} Upvotes</span>
                       </p>
-                    )}
-                    {sla && (
-                      <p
+
+                      {truncatedDesc && (
+                        <p
+                          style={{
+                            fontSize: 13,
+                            color: "#374151",
+                            marginBottom: 10,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {truncatedDesc}
+                        </p>
+                      )}
+
+                      <div
                         style={{
                           fontSize: 12,
-                          fontWeight: 700,
-                          color: sla.color,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
+                          color: "#475569",
+                          background: "#f1f5f9",
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          fontFamily: "monospace",
+                          whiteSpace: "pre-wrap",
                         }}
                       >
-                        ⏱️ {sla.text}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                        {formatCoordinates(c)}
+                      </div>
+                    </div>
 
+                    <div
+                      style={{
+                        padding: "1rem 1.25rem",
+                        borderTop: "1px solid #f1f5f9",
+                        background: "#f8fafc",
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {c.status === "active" && (
+                        <button
+                          onClick={() => updateFloodStatus(c.id, "in-progress")}
+                          style={{
+                            padding: "0.5rem 1.25rem",
+                            borderRadius: 10,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            background: "#e0f2fe",
+                            color: "#0369a1",
+                            border: "1px solid #bae6fd",
+                            minHeight: "40px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          ⏳ Mark In-Progress
+                        </button>
+                      )}
+                      {(c.status === "active" || c.status === "in-progress") && (
+                        <button
+                          onClick={() => updateFloodStatus(c.id, "resolved")}
+                          style={{
+                            padding: "0.5rem 1.25rem",
+                            borderRadius: 10,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            background: "#f0fdf4",
+                            color: "#16a34a",
+                            border: "1px solid #bbf7d0",
+                            minHeight: "40px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          ✅ Mark Resolved
+                        </button>
+                      )}
+                      {(c.status === "active" || c.status === "in-progress") && (
+                        <button
+                          onClick={() => dismissFloodReport(c.id)}
+                          style={{
+                            padding: "0.5rem 1.25rem",
+                            borderRadius: 10,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            background: "#fef2f2",
+                            color: "#dc2626",
+                            border: "1px solid #fca5a5",
+                            minHeight: "40px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          🗑️ Dismiss
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+            {/* Dashed divider */}
+            {floodReports.filter((r) => r.status === "active" || r.status === "in-progress")
+              .length > 0 &&
+              floodReports.filter((r) => r.status === "resolved" || r.status === "dismissed")
+                .length > 0 && (
                 <div
                   style={{
-                    padding: "1rem 1.25rem",
-                    borderTop: "1px solid #f1f5f9",
-                    background: "#f8fafc",
-                    display: "flex",
-                    gap: 8,
-                    flexWrap: "wrap",
+                    padding: "0.5rem 0",
+                    fontSize: 12,
+                    color: "#9ca3af",
+                    fontWeight: 500,
+                    textAlign: "center",
+                    borderTop: "1px dashed #e5e7eb",
+                    marginTop: 8,
                   }}
                 >
-                  {c.status !== "in-progress" && c.status !== "resolved" && (
-                    <button
-                      onClick={() => updateStatus(c.id, "in-progress")}
-                      style={{
-                        padding: "0.5rem 1.25rem",
-                        borderRadius: 10,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        background: "#fffbeb",
-                        color: "#d97706",
-                        border: "1px solid #fde68a",
-                        minHeight: "40px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {t.markInProgress}
-                    </button>
-                  )}
-                  {c.status !== "resolved" && (
-                    <button
-                      onClick={() => updateStatus(c.id, "resolved")}
-                      style={{
-                        padding: "0.5rem 1.25rem",
-                        borderRadius: 10,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        background: "#f0fdf4",
-                        color: "#16a34a",
-                        border: "1px solid #bbf7d0",
-                        minHeight: "40px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {t.markResolved}
-                    </button>
-                  )}
-                  {c.status === "resolved" && (
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: "#16a34a",
-                        fontWeight: 700,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
-                    >
-                      {t.issueResolved}
-                    </span>
-                  )}
+                  ✅ Resolved Reports
                 </div>
-              </div>
-            );
-          })
+              )}
+
+            {/* Render Resolved and Dismissed */}
+            {floodReports
+              .filter((r) => r.status === "resolved" || r.status === "dismissed")
+              .map((c) => {
+                const isResolvedOrDismissed = c.status === "resolved" || c.status === "dismissed";
+                const sevColor = FLOOD_SEVERITY_COLOR[c.severity] || FLOOD_SEVERITY_COLOR.Medium;
+                const truncatedDesc = c.description
+                  ? c.description.length > 80
+                    ? `${c.description.slice(0, 80)}...`
+                    : c.description
+                  : "";
+                return (
+                  <div
+                    key={c.id}
+                    className="animated-card hover-lift"
+                    style={{
+                      background: "white",
+                      borderRadius: 20,
+                      border: "1px solid #f1f5f9",
+                      overflow: "hidden",
+                      boxShadow: "var(--shadow-sm)",
+                      opacity: isResolvedOrDismissed ? 0.5 : 1,
+                      pointerEvents: isResolvedOrDismissed ? "none" : "auto",
+                    }}
+                  >
+                    <div style={{ padding: "1.25rem" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          marginBottom: 8,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span style={{ fontSize: 18 }}>{c.issue_type.split(" ")[0]}</span>
+                        <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
+                          {c.issue_type}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            padding: "3px 10px",
+                            borderRadius: 99,
+                            fontWeight: 700,
+                            background: `${sevColor}15`,
+                            color: sevColor,
+                            border: `1px solid ${sevColor}30`,
+                          }}
+                        >
+                          {c.severity || "Medium"}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            padding: "3px 10px",
+                            borderRadius: 99,
+                            fontWeight: 700,
+                            background: `${FLOOD_STATUS_COLOR[c.status]}15`,
+                            color: FLOOD_STATUS_COLOR[c.status],
+                            border: `1px solid ${FLOOD_STATUS_COLOR[c.status]}30`,
+                          }}
+                        >
+                          {c.status}
+                        </span>
+                      </div>
+
+                      <p
+                        style={{
+                          fontSize: 13,
+                          color: "#6b7280",
+                          marginBottom: 8,
+                          fontWeight: 500,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span>📍 {c.ward || "Hyderabad"}</span>
+                        <span>·</span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            background: "#eff6ff",
+                            color: "#1d4ed8",
+                            border: "1px solid #bfdbfe",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {c.report_type.toUpperCase()}
+                        </span>
+                        <span>·</span>
+                        <span>{timeAgo(c.created_at)}</span>
+                        <span>·</span>
+                        <span>👍 {c.upvotes || 0} Upvotes</span>
+                      </p>
+
+                      {truncatedDesc && (
+                        <p
+                          style={{
+                            fontSize: 13,
+                            color: "#374151",
+                            marginBottom: 10,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {truncatedDesc}
+                        </p>
+                      )}
+
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "#475569",
+                          background: "#f1f5f9",
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          fontFamily: "monospace",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {formatCoordinates(c)}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "1rem 1.25rem",
+                        borderTop: "1px solid #f1f5f9",
+                        background: "#f8fafc",
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {c.status === "resolved" && (
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color: "#16a34a",
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          Resolved
+                        </span>
+                      )}
+                      {c.status === "dismissed" && (
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color: "#6b7280",
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          Dismissed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </>
         )}
       </div>
     </main>

@@ -217,8 +217,7 @@ export default function FloodPage() {
       const { data, error } = await supabase
         .from("flood_reports")
         .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .order("created_at", { ascending: false });
       if (error) throw error;
       setFloodReports(data || []);
       setLastUpdatedTime(new Date());
@@ -242,11 +241,28 @@ export default function FloodPage() {
     return () => clearInterval(interval);
   }, [lastUpdatedTime, t.justNow, t.minAgo, t.minsAgo]);
 
-  // Initial fetch and 60s auto-refresh
+  // Initial fetch and realtime subscription
   useEffect(() => {
     fetchFloodReports();
-    const interval = setInterval(fetchFloodReports, 60000);
-    return () => clearInterval(interval);
+
+    const channel = supabase
+      .channel("flood_reports_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "flood_reports",
+        },
+        () => {
+          fetchFloodReports();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchFloodReports]);
 
   // Load Leaflet dynamically via CDN
@@ -546,8 +562,11 @@ export default function FloodPage() {
     // Clear old layers before redrawing
     layers.clearLayers();
 
-    // Redraw existing flood reports
-    floodReports.forEach((report) => {
+    // Redraw existing flood reports (only active/in-progress)
+    const visibleReports = floodReports.filter(
+      (r) => r.status === "active" || r.status === "in-progress",
+    );
+    visibleReports.forEach((report) => {
       const coords = report.coordinates;
       if (!coords) return;
 
@@ -600,6 +619,12 @@ export default function FloodPage() {
       `;
 
       if (coords.type === "point") {
+        const lat = parseFloat(coords.lat);
+        const lng = parseFloat(coords.lng);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) {
+          console.warn("Skipping invalid point coordinates for report:", report.id);
+          return;
+        }
         const pointIcon = L.divIcon({
           className: "",
           html: `<div style="
@@ -612,10 +637,32 @@ export default function FloodPage() {
           iconSize: [32, 32],
           iconAnchor: [16, 16],
         });
-        L.marker([coords.lat, coords.lng], { icon: pointIcon }).addTo(layers).bindPopup(popupHtml);
+        L.marker([lat, lng], { icon: pointIcon }).addTo(layers).bindPopup(popupHtml);
       } else if (coords.type === "segment") {
         const polyPoints = coords.points || [coords.start, coords.end];
-        L.polyline(polyPoints, {
+        if (!Array.isArray(polyPoints)) {
+          console.warn("Skipping invalid segment points for report:", report.id);
+          return;
+        }
+        const validPoints = [];
+        for (const pt of polyPoints) {
+          let lat, lng;
+          if (Array.isArray(pt)) {
+            lat = parseFloat(pt[0]);
+            lng = parseFloat(pt[1]);
+          } else if (pt && typeof pt === "object") {
+            lat = parseFloat(pt.lat);
+            lng = parseFloat(pt.lng);
+          }
+          if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+            validPoints.push([lat, lng]);
+          }
+        }
+        if (validPoints.length < 2) {
+          console.warn("Skipping segment with insufficient coordinates:", report.id);
+          return;
+        }
+        L.polyline(validPoints, {
           color: "#1e40af", // dark blue
           weight: 6,
           opacity: 0.85,
@@ -623,7 +670,29 @@ export default function FloodPage() {
           .addTo(layers)
           .bindPopup(popupHtml);
       } else if (coords.type === "freehand") {
-        L.polyline(coords.points, {
+        if (!Array.isArray(coords.points)) {
+          console.warn("Skipping invalid freehand points for report:", report.id);
+          return;
+        }
+        const validPoints = [];
+        for (const pt of coords.points) {
+          let lat, lng;
+          if (Array.isArray(pt)) {
+            lat = parseFloat(pt[0]);
+            lng = parseFloat(pt[1]);
+          } else if (pt && typeof pt === "object") {
+            lat = parseFloat(pt.lat);
+            lng = parseFloat(pt.lng);
+          }
+          if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+            validPoints.push([lat, lng]);
+          }
+        }
+        if (validPoints.length < 2) {
+          console.warn("Skipping freehand with insufficient coordinates:", report.id);
+          return;
+        }
+        L.polyline(validPoints, {
           color: "#1e40af", // dark blue freehand segment
           weight: 6,
           opacity: 0.85,
@@ -631,7 +700,17 @@ export default function FloodPage() {
           .addTo(layers)
           .bindPopup(popupHtml);
       } else if (coords.type === "zone") {
-        L.circle(coords.center, {
+        if (!coords.center) {
+          console.warn("Skipping zone with missing center:", report.id);
+          return;
+        }
+        const lat = parseFloat(coords.center.lat);
+        const lng = parseFloat(coords.center.lng);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) {
+          console.warn("Skipping invalid zone center coordinates:", report.id);
+          return;
+        }
+        L.circle([lat, lng], {
           radius: (coords.radiusKm || 0.3) * 1000,
           color: "#dc2626",
           fillColor: "#ef4444",
@@ -646,22 +725,163 @@ export default function FloodPage() {
     // Draw active preview elements (blue)
     if (previewCoords) {
       if (previewCoords.type === "point") {
-        const previewIcon = L.divIcon({
-          className: "",
-          html: `<div style="
-            width: 32px; height: 32px; border-radius: 50%;
-            background: #0284c7; border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(2,132,199,0.4);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; cursor: pointer;
-            animation: pulse-glow-blue 1.5s infinite ease-in-out;
-          ">📍</div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-        });
-        L.marker([previewCoords.lat, previewCoords.lng], { icon: previewIcon }).addTo(layers);
+        const lat = parseFloat(previewCoords.lat);
+        const lng = parseFloat(previewCoords.lng);
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+          const previewIcon = L.divIcon({
+            className: "",
+            html: `<div style="
+              width: 32px; height: 32px; border-radius: 50%;
+              background: #0284c7; border: 2px solid white;
+              box-shadow: 0 2px 8px rgba(2,132,199,0.4);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 16px; cursor: pointer;
+              animation: pulse-glow-blue 1.5s infinite ease-in-out;
+            ">📍</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+          });
+          L.marker([lat, lng], { icon: previewIcon }).addTo(layers);
+        }
       } else if (previewCoords.type === "segment") {
-        // Start marker: blue circle instead of green
+        const startLat = parseFloat(previewCoords.start?.lat);
+        const startLng = parseFloat(previewCoords.start?.lng);
+        const endLat = parseFloat(previewCoords.end?.lat);
+        const endLng = parseFloat(previewCoords.end?.lng);
+
+        if (
+          !Number.isNaN(startLat) &&
+          !Number.isNaN(startLng) &&
+          !Number.isNaN(endLat) &&
+          !Number.isNaN(endLng)
+        ) {
+          // Start marker: blue circle instead of green
+          const startIcon = L.divIcon({
+            className: "",
+            html: `<div style="
+              width: 38px; height: 22px; background: #3b82f6; color: white; border: 2px solid white;
+              border-radius: 8px; display: flex; align-items: center; justify-content: center;
+              font-size: 9px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            ">Start</div>`,
+            iconSize: [38, 22],
+            iconAnchor: [19, 11],
+          });
+          // End marker: dark blue circle instead of red
+          const endIcon = L.divIcon({
+            className: "",
+            html: `<div style="
+              width: 38px; height: 22px; background: #1e40af; color: white; border: 2px solid white;
+              border-radius: 8px; display: flex; align-items: center; justify-content: center;
+              font-size: 9px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            ">End</div>`,
+            iconSize: [38, 22],
+            iconAnchor: [19, 11],
+          });
+
+          L.marker([startLat, startLng], { icon: startIcon }).addTo(layers);
+          L.marker([endLat, endLng], { icon: endIcon }).addTo(layers);
+
+          const linePoints = [];
+          if (Array.isArray(previewCoords.points)) {
+            for (const pt of previewCoords.points) {
+              let pLat, pLng;
+              if (Array.isArray(pt)) {
+                pLat = parseFloat(pt[0]);
+                pLng = parseFloat(pt[1]);
+              } else if (pt && typeof pt === "object") {
+                pLat = parseFloat(pt.lat);
+                pLng = parseFloat(pt.lng);
+              }
+              if (!Number.isNaN(pLat) && !Number.isNaN(pLng)) {
+                linePoints.push([pLat, pLng]);
+              }
+            }
+          }
+          if (linePoints.length < 2) {
+            linePoints.push([startLat, startLng], [endLat, endLng]);
+          }
+
+          L.polyline(linePoints, {
+            color: "#3b82f6", // light blue dashed
+            weight: 5,
+            dashArray: "8,6",
+            opacity: 0.7,
+          }).addTo(layers);
+        }
+      } else if (previewCoords.type === "freehand") {
+        if (Array.isArray(previewCoords.points)) {
+          const validPoints = [];
+          for (const pt of previewCoords.points) {
+            let pLat, pLng;
+            if (Array.isArray(pt)) {
+              pLat = parseFloat(pt[0]);
+              pLng = parseFloat(pt[1]);
+            } else if (pt && typeof pt === "object") {
+              pLat = parseFloat(pt.lat);
+              pLng = parseFloat(pt.lng);
+            }
+            if (!Number.isNaN(pLat) && !Number.isNaN(pLng)) {
+              validPoints.push([pLat, pLng]);
+            }
+          }
+          if (validPoints.length >= 2) {
+            L.polyline(validPoints, {
+              color: "#3b82f6", // light blue preview
+              weight: 5,
+              opacity: 0.85,
+            }).addTo(layers);
+          }
+        }
+      } else if (previewCoords.type === "zone") {
+        if (previewCoords.center) {
+          const centerLat = parseFloat(previewCoords.center.lat);
+          const centerLng = parseFloat(previewCoords.center.lng);
+          if (!Number.isNaN(centerLat) && !Number.isNaN(centerLng)) {
+            const dragIcon = L.divIcon({
+              className: "",
+              html: `<div style="
+                width: 32px; height: 32px; border-radius: 50%;
+                background: #0284c7; border: 3px solid white;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                display: flex; align-items: center; justify-content: center;
+                font-size: 16px; cursor: move;
+              ">⭕</div>`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+            });
+
+            const previewCircle = L.circle([centerLat, centerLng], {
+              radius: (previewCoords.radiusKm || 0.3) * 1000,
+              color: "#0284c7",
+              fillColor: "#0ea5e9",
+              fillOpacity: 0.25,
+              weight: 2,
+            }).addTo(layers);
+
+            const centerMarker = L.marker([centerLat, centerLng], {
+              icon: dragIcon,
+              draggable: true,
+            }).addTo(layers);
+
+            centerMarker.on("drag", (e) => {
+              const latlng = e.target.getLatLng();
+              previewCircle.setLatLng(latlng);
+            });
+
+            centerMarker.on("dragend", (e) => {
+              const latlng = e.target.getLatLng();
+              setPreviewCoords((prev) => ({
+                ...prev,
+                center: { lat: latlng.lat, lng: latlng.lng },
+              }));
+            });
+          }
+        }
+      }
+    } else if (segmentStart) {
+      const startLat = parseFloat(segmentStart.lat);
+      const startLng = parseFloat(segmentStart.lng);
+      if (!Number.isNaN(startLat) && !Number.isNaN(startLng)) {
         const startIcon = L.divIcon({
           className: "",
           html: `<div style="
@@ -672,88 +892,8 @@ export default function FloodPage() {
           iconSize: [38, 22],
           iconAnchor: [19, 11],
         });
-        // End marker: dark blue circle instead of red
-        const endIcon = L.divIcon({
-          className: "",
-          html: `<div style="
-            width: 38px; height: 22px; background: #1e40af; color: white; border: 2px solid white;
-            border-radius: 8px; display: flex; align-items: center; justify-content: center;
-            font-size: 9px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          ">End</div>`,
-          iconSize: [38, 22],
-          iconAnchor: [19, 11],
-        });
-
-        L.marker([previewCoords.start.lat, previewCoords.start.lng], { icon: startIcon }).addTo(
-          layers,
-        );
-        L.marker([previewCoords.end.lat, previewCoords.end.lng], { icon: endIcon }).addTo(layers);
-
-        const linePoints = previewCoords.points || [previewCoords.start, previewCoords.end];
-        L.polyline(linePoints, {
-          color: "#3b82f6", // light blue dashed
-          weight: 5,
-          dashArray: "8,6",
-          opacity: 0.7,
-        }).addTo(layers);
-      } else if (previewCoords.type === "freehand") {
-        L.polyline(previewCoords.points, {
-          color: "#3b82f6", // light blue preview
-          weight: 5,
-          opacity: 0.85,
-        }).addTo(layers);
-      } else if (previewCoords.type === "zone") {
-        const dragIcon = L.divIcon({
-          className: "",
-          html: `<div style="
-            width: 32px; height: 32px; border-radius: 50%;
-            background: #0284c7; border: 3px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; cursor: move;
-          ">⭕</div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-        });
-
-        const previewCircle = L.circle(previewCoords.center, {
-          radius: (previewCoords.radiusKm || 0.3) * 1000,
-          color: "#0284c7",
-          fillColor: "#0ea5e9",
-          fillOpacity: 0.25,
-          weight: 2,
-        }).addTo(layers);
-
-        const centerMarker = L.marker([previewCoords.center.lat, previewCoords.center.lng], {
-          icon: dragIcon,
-          draggable: true,
-        }).addTo(layers);
-
-        centerMarker.on("drag", (e) => {
-          const latlng = e.target.getLatLng();
-          previewCircle.setLatLng(latlng);
-        });
-
-        centerMarker.on("dragend", (e) => {
-          const latlng = e.target.getLatLng();
-          setPreviewCoords((prev) => ({
-            ...prev,
-            center: { lat: latlng.lat, lng: latlng.lng },
-          }));
-        });
+        L.marker([startLat, startLng], { icon: startIcon }).addTo(layers);
       }
-    } else if (segmentStart) {
-      const startIcon = L.divIcon({
-        className: "",
-        html: `<div style="
-          width: 38px; height: 22px; background: #3b82f6; color: white; border: 2px solid white;
-          border-radius: 8px; display: flex; align-items: center; justify-content: center;
-          font-size: 9px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        ">Start</div>`,
-        iconSize: [38, 22],
-        iconAnchor: [19, 11],
-      });
-      L.marker([segmentStart.lat, segmentStart.lng], { icon: startIcon }).addTo(layers);
     }
 
     // Set cursor crosshair for draw tool
@@ -977,6 +1117,12 @@ export default function FloodPage() {
     }
   }, []);
 
+  const totalReportsCount = floodReports.length;
+  const activeReportsCount = floodReports.filter(
+    (r) => r.status === "active" || r.status === "in-progress",
+  ).length;
+  const resolvedReportsCount = floodReports.filter((r) => r.status === "resolved").length;
+
   return (
     <main
       style={{
@@ -1075,6 +1221,67 @@ export default function FloodPage() {
         </div>
         <p style={{ fontSize: "0.8rem", opacity: 0.9, margin: 0, fontWeight: 500 }}>{t.subtitle}</p>
       </header>
+
+      {/* 3-Column Stats Bar */}
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "1px",
+          background: "#bae6fd",
+          borderBottom: "1px solid #bae6fd",
+          zIndex: 50,
+        }}
+      >
+        <div style={{ background: "white", padding: "10px 6px", textAlign: "center" }}>
+          <span
+            style={{
+              display: "block",
+              fontSize: "10px",
+              color: "#64748b",
+              fontWeight: 700,
+              textTransform: "uppercase",
+            }}
+          >
+            Total Reported
+          </span>
+          <span style={{ fontSize: "16px", fontWeight: 800, color: "#0369a1" }}>
+            {totalReportsCount}
+          </span>
+        </div>
+        <div style={{ background: "white", padding: "10px 6px", textAlign: "center" }}>
+          <span
+            style={{
+              display: "block",
+              fontSize: "10px",
+              color: "#64748b",
+              fontWeight: 700,
+              textTransform: "uppercase",
+            }}
+          >
+            Active Issues
+          </span>
+          <span style={{ fontSize: "16px", fontWeight: 800, color: "#dc2626" }}>
+            {activeReportsCount}
+          </span>
+        </div>
+        <div style={{ background: "white", padding: "10px 6px", textAlign: "center" }}>
+          <span
+            style={{
+              display: "block",
+              fontSize: "10px",
+              color: "#64748b",
+              fontWeight: 700,
+              textTransform: "uppercase",
+            }}
+          >
+            Resolved
+          </span>
+          <span style={{ fontSize: "16px", fontWeight: 800, color: "#16a34a" }}>
+            {resolvedReportsCount}
+          </span>
+        </div>
+      </section>
 
       {/* Tool Selector Buttons above the Map */}
       <section

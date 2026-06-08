@@ -12,6 +12,10 @@ const CATEGORY_EMOJI = {
   Streetlight: "💡",
   Waterlogging: "💧",
   Encroachment: "🚧",
+  Flooding: "🌊",
+  "Drainage Overflow": "🕳️",
+  "Monsoon Damage": "⛈️",
+  "Other Monsoon/Flood-related issues": "🌧️",
   Other: "📌",
 };
 
@@ -110,8 +114,20 @@ export default function MapPage() {
     }
   }
 
-  // Categories to show in the filter toolbar: All, Pothole, Garbage, Streetlight, Waterlogging
-  const categories = ["All", "Pothole", "Garbage", "Streetlight", "Waterlogging"];
+  // Categories to show in the filter toolbar: All, Pothole, Garbage, Streetlight, Encroachment, Flooding, Waterlogging, Drainage Overflow, Monsoon Damage, Other Monsoon/Flood-related issues, Other
+  const categories = [
+    "All",
+    "Pothole",
+    "Garbage",
+    "Streetlight",
+    "Encroachment",
+    "Flooding",
+    "Waterlogging",
+    "Drainage Overflow",
+    "Monsoon Damage",
+    "Other Monsoon/Flood-related issues",
+    "Other",
+  ];
   const filtered = useMemo(() => {
     return filter === "All" ? complaints : complaints.filter((c) => c.category === filter);
   }, [complaints, filter]);

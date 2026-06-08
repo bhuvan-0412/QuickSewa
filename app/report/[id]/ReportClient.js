@@ -15,6 +15,10 @@ const CATEGORY_EMOJI = {
   Streetlight: "💡",
   Waterlogging: "💧",
   Encroachment: "🚧",
+  Flooding: "🌊",
+  "Drainage Overflow": "🕳️",
+  "Monsoon Damage": "⛈️",
+  "Other Monsoon/Flood-related issues": "🌧️",
   Other: "📌",
 };
 

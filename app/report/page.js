@@ -5,13 +5,28 @@ import LangToggle from "../components/LangToggle";
 import { useLang } from "../lib/language";
 import { supabase } from "../lib/supabase";
 
-const CATEGORIES = ["Pothole", "Garbage", "Streetlight", "Waterlogging", "Encroachment", "Other"];
+const CATEGORIES = [
+  "Pothole",
+  "Garbage",
+  "Streetlight",
+  "Waterlogging",
+  "Encroachment",
+  "Flooding",
+  "Drainage Overflow",
+  "Monsoon Damage",
+  "Other Monsoon/Flood-related issues",
+  "Other",
+];
 const CATEGORY_EMOJI = {
   Pothole: "🕳️",
   Garbage: "🗑️",
   Streetlight: "💡",
   Waterlogging: "💧",
   Encroachment: "🚧",
+  Flooding: "🌊",
+  "Drainage Overflow": "🕳️",
+  "Monsoon Damage": "⛈️",
+  "Other Monsoon/Flood-related issues": "🌧️",
   Other: "📌",
 };
 const _SEVERITY_COLOR = { Low: "#16a34a", Medium: "#d97706", High: "#dc2626" };
@@ -272,7 +287,7 @@ export default function Report() {
                 parts: [
                   {
                     text: `You are an expert civic infrastructure analyst for Hyderabad, India. Analyse this image and identify civic issues. Respond ONLY with a valid JSON object, no markdown, no code blocks, no extra text:
-{"primary_category":"Pothole|Garbage|Streetlight|Waterlogging|Encroachment|Other","confidence":85,"severity":"Low|Medium|High","auto_title":"Short 5-8 word title","auto_description":"2-3 sentence description of the issue","secondary_issues":[],"urgent":false,"estimated_repair":"₹5,000–₹15,000","department":"GHMC Roads|GHMC Sanitation|GHMC Lighting|HMWS&SB|GHMC Encroachment|GHMC General"}`,
+{"primary_category":"Pothole|Garbage|Streetlight|Waterlogging|Encroachment|Flooding|Drainage Overflow|Monsoon Damage|Other Monsoon/Flood-related issues|Other","confidence":85,"severity":"Low|Medium|High","auto_title":"Short 5-8 word title","auto_description":"2-3 sentence description of the issue","secondary_issues":[],"urgent":false,"estimated_repair":"₹5,000–₹15,000","department":"GHMC Roads|GHMC Sanitation|GHMC Lighting|HMWS&SB|GHMC Encroachment|GHMC General"}`,
                   },
                   {
                     inline_data: {
