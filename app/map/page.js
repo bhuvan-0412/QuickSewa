@@ -254,6 +254,27 @@ export default function MapPage() {
           </h1>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link
+            href="/flood"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "#f0f9ff",
+              color: "#0369a1",
+              fontSize: "11px",
+              fontWeight: 700,
+              padding: "6px 14px",
+              borderRadius: "99px",
+              border: "1px solid #bae6fd",
+              textDecoration: "none",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              boxShadow: "0 2px 8px rgba(3, 105, 161, 0.05)",
+            }}
+          >
+            🌧️ Flood Map →
+          </Link>
           <div className="badge-premium">
             {filtered.length} {t.issues}
           </div>

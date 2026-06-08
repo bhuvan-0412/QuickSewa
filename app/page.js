@@ -305,6 +305,44 @@ export default function Home() {
           </div>
         )}
 
+        <div
+          style={{
+            background: "#f0f9ff",
+            border: "1px solid #bae6fd",
+            borderRadius: 14,
+            padding: "0.875rem 1rem",
+            marginBottom: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 28 }}>🌧️</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "#0369a1", margin: 0 }}>
+              Monsoon Watch is live
+            </p>
+            <p style={{ fontSize: 12, color: "#0284c7", margin: 0 }}>
+              Report flooded roads and waterlogging in real time
+            </p>
+          </div>
+          <Link
+            href="/flood"
+            style={{
+              background: "#0369a1",
+              color: "white",
+              padding: "0.5rem 1rem",
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Open →
+          </Link>
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Link
             href="/report"
@@ -318,6 +356,22 @@ export default function Home() {
             }}
           >
             {t.reportBtn}
+          </Link>
+
+          <Link
+            href="/flood"
+            style={{
+              display: "block",
+              background: "#0369a1",
+              color: "white",
+              padding: "0.9rem 2rem",
+              borderRadius: 14,
+              fontSize: 16,
+              fontWeight: 600,
+              textAlign: "center",
+            }}
+          >
+            🌧️ Monsoon Flood Map
           </Link>
 
           <Link
