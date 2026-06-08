@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require("node:path");
 
 module.exports = {
   // Run Biome check and format on all supported staged files
